@@ -1,0 +1,23 @@
+{
+  "name": "import-imessage",
+  "version": "0.0.1",
+  "description": "Exports iMessage chat history into a universal chat format",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --reporter spec"
+  },
+  "keywords": [
+    "imessage",
+    "ichat",
+    "export"
+  ],
+  "author": "Jeff Keen",
+  "license": "ISC",
+  "devDependencies": {
+    "chai": "^3.4.1",
+    "crypto": "0.0.3",
+    "mocha": "^2.3.4",
+    "rsvp": "^3.1.0",
+    "sqlite3": "^3.1.1"
+  }
+}
