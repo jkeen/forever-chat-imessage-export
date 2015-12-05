@@ -1,60 +1,81 @@
 var Sqlite3 = require('sqlite3').verbose();
 var RSVP    = require('rsvp');
 var Crypto  = require('crypto');
+var _       = require('underscore');
 
-var QUERY = 'SELECT ' +
-'    m.rowid as message_id, ' +
-'    (SELECT chat_id FROM chat_message_join WHERE chat_message_join.message_id = m.rowid) as message_group, ' +
+var GROUP_SEPARATOR = '|*--*|';
+var QUERY = '' +
+'  SELECT ' +
+'  m.rowid as message_id, ' +
 ' ' +
-'    CASE p.participant_count ' +
-'        WHEN 0 THEN "???" ' +
-'        WHEN 1 THEN "Individual" ' +
-'        ELSE "Group" ' +
-'    END AS chat_type, ' +
+'  (SELECT chat_id FROM chat_message_join WHERE chat_message_join.message_id = m.rowid) as message_group, ' +
 ' ' +
-'	date, ' +
+'  CASE p.participant_count ' +
+'      WHEN 0 THEN "???" ' +
+'      WHEN 1 THEN "Individual" ' +
+'      ELSE "Group" ' +
+'  END AS chat_type, ' +
 ' ' +
-'    strftime("%Y-%m-%dT%H:%M:%S", DATETIME(date +978307200, "unixepoch")) AS formatted_date, ' +
+'  date, ' +
 ' ' +
-'	CASE date_read ' +
-'		WHEN 0 THEN null ' +
-'		ELSE strftime("%Y-%m-%dT%H:%M:%S", DATETIME(date_read +978307200, "unixepoch"))  ' +
-'	END AS formatted_date_read, ' +
-'	 ' +
-'	CASE date_delivered ' +
-'		WHEN 0 THEN null ' +
-'		ELSE strftime("%Y-%m-%dT%H:%M:%S", DATETIME(date_delivered +978307200, "unixepoch"))  ' +
-'	END AS formatted_date_delivered, ' +
+'  id AS address, ' +
 ' ' +
-'    id AS receiver, ' +
-'	last_addressed_handle as sender, ' +
-'	is_from_me,  ' +
-'    CASE is_from_me ' +
-'        WHEN 0 THEN "Received" ' +
-'        WHEN 1 THEN "Sent" ' +
-'        ELSE is_from_me ' +
-'    END AS type, ' +
+'  (SELECT c.account_login FROM chat as c WHERE c.rowid = (SELECT chat_id FROM chat_message_join WHERE chat_message_join.message_id = m.rowid)) as account_login, ' +
 ' ' +
-'    text, ' +
-'    CASE cache_has_attachments ' +
-'        WHEN 0 THEN Null ' +
-'        WHEN 1 THEN filename ' +
-'    END AS attachment, ' +
-'	 ' +
-'    m.service ' +
+'  (SELECT GROUP_CONCAT(id, "' + GROUP_SEPARATOR + '") FROM handle as h2 ' +
+'    INNER JOIN chat_message_join AS cmj2 ON h2.rowid = chj2.handle_id ' +
+'    INNER JOIN chat_handle_join AS chj2 ON cmj2.chat_id = chj2.chat_id ' +
+'    WHERE cmj2.message_id = m.rowid) AS participants, ' +
+' ' +
+'  is_from_me, ' +
+' ' +
+'  strftime("%Y-%m-%dT%H:%M:%S", DATETIME(date +978307200, "unixepoch")) AS formatted_date, ' +
+' ' +
+'  CASE is_from_me ' +
+'    WHEN 1 THEN ' +
+'      coalesce(coalesce(last_addressed_handle, account_login), id) ' +
+'    ELSE ' +
+'      coalesce(last_addressed_handle, account_login) ' +
+'  END AS me, ' +
+' ' +
+'  CASE is_from_me ' +
+'      WHEN 0 THEN "Received" ' +
+'      WHEN 1 THEN "Sent" ' +
+'      ELSE is_from_me ' +
+'  END AS type, ' +
+' ' +
+'  text, ' +
+' ' +
+'  CASE date_read ' +
+'    WHEN 0 THEN null ' +
+'    ELSE strftime("%Y-%m-%dT%H:%M:%S", DATETIME(date_read +978307200, "unixepoch")) ' +
+'  END AS formatted_date_read, ' +
+' ' +
+'  CASE date_delivered ' +
+'    WHEN 0 THEN null ' +
+'    ELSE strftime("%Y-%m-%dT%H:%M:%S", DATETIME(date_delivered +978307200, "unixepoch")) ' +
+'  END AS formatted_date_delivered, ' +
+' ' +
+' ' +
+'  CASE cache_has_attachments ' +
+'      WHEN 0 THEN Null ' +
+'      WHEN 1 THEN filename ' +
+'  END AS attachment, ' +
+' ' +
+'  m.service ' +
 ' ' +
 'FROM message AS m ' +
 'LEFT JOIN message_attachment_join AS maj ON maj.message_id = m.rowid ' +
 'LEFT JOIN attachment AS a ON a.rowid = maj.attachment_id ' +
 'LEFT JOIN handle AS h ON h.rowid = m.handle_id ' +
-'LEFT JOIN chat_message_join as chj ON chj.message_id = m.rowid  ' +
+'LEFT JOIN chat_message_join as chj ON chj.message_id = m.rowid ' +
 'LEFT JOIN chat as ch ON chj.chat_id = ch.ROWID ' +
-'LEFT JOIN (SELECT count(*) as participant_count, cmj.chat_id, cmj.message_id as mid FROM  ' +
+'LEFT JOIN (SELECT count(*) as participant_count, cmj.chat_id, cmj.message_id as mid FROM ' +
 '    chat_handle_join as chj ' +
 '    INNER JOIN chat_message_join as cmj on cmj.chat_id = chj.chat_id ' +
 '    GROUP BY cmj.message_id, cmj.chat_id) as p on p.mid = m.rowid ' +
-' ' +
-'ORDER BY date DESC LIMIT 100 ';
+'WHERE (text is not null or attachment is not null) ' + // Don't include this crap. They're bogus messages without anything. Not sure why they're in there
+'ORDER BY date LIMIT 1500';
 
 function getConnection(path) {
   return new RSVP.Promise(function(resolve, reject) {
@@ -91,9 +112,9 @@ function uniqueId(row){
 function buildUniversalRow(row) {
   return {
     sha:            uniqueId(row),
-    message_group:  row.message_group,
-    sender:         row.sender,
-    receiver:       row.receiver,
+    _message_group: row.message_group,
+    _address:       row.address,
+    _me:            row.me,
     is_from_me:     row.is_from_me,
     date:           row.formatted_date,
     date_read:      row.formatted_date_read,
@@ -133,14 +154,15 @@ function mapAttachment(id, row) {
 
 function mapParticipants(id, row) {
   var map = (participantMap[row.message_group] || {});
-  map[row.receiver] = "";
-  map[row.sender] = "";
+  // Using a hash so we can only deal in uniques
+  map[row.address] = "";
+  map[row.me || '<me>'] = "";
   participantMap[row.message_group] = map;
 }
 
 function formattedParticipantMapForMessage(message) {
-   var p = participantMap[message.message_group];
-   delete p[null];
+   var p = participantMap[message._message_group];
+    delete p[null];
    return Object.keys(p).sort();
 }
 
@@ -149,9 +171,24 @@ function formattedAttachmentsForMessage(message) {
   return attachments ? attachments : [];
 }
 
+function setSenderAndReceiver(message) {
+  if (message.is_from_me) {
+    message.sender   = message._me;
+    message.receiver = _.without(message.participants, message._me);
+  }
+  else {
+    message.sender = message._address;
+    message.receiver = _.without(message.participants, message._address);
+  }
+  // delete message._address;
+  // delete message._me;
+
+  return message;
+}
+
 function prepareRow(row) {
-  var uRow = buildUniversalRow(row);
-  var sha  = uRow.sha;
+  var message = buildUniversalRow(row);
+  var sha  = message.sha;
 
   // this is called in order by date, so we'll remember the
   // order and retreive the keys in the same order
@@ -166,7 +203,9 @@ function prepareRow(row) {
 
   // So we'll map the message by sha and eliminate duplicates, and keep
   // track of the attachments by sha, and then relate them together at the end
-  mapMessage(sha, uRow);
+  mapMessage(sha, message);
+
+  // We'll relate these later
   mapAttachment(sha, row);
   mapParticipants(sha, row);
 }
@@ -176,9 +215,15 @@ function buildPayload() {
   for (var i = 0; i < ordered.length; i++) {
     var sha = ordered[i];
     var message = messageMap[sha];
+
     message.attachments  = formattedAttachmentsForMessage(message);
     message.participants = formattedParticipantMapForMessage(message);
-    delete message.message_group; // was temporary
+    message              = setSenderAndReceiver(message);
+
+    // delete message._message_group;
+    // delete message._address;
+    // delete message._me;
+
     messages.push(JSON.stringify(message));
   }
 
@@ -194,13 +239,14 @@ module.exports = function(path, locale) {
         db.each(QUERY, function(error, row) {
           prepareRow(row);
         }, function() { // FINISHED CALLBACK
+
           var messages = buildPayload();
           resolve(messages);
         });
       });
       db.close();
     }, function(reason) {
-      throw("Couldn't open selected database.");
+      reject("Couldn't open selected database");
     });
   });
 
