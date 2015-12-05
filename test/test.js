@@ -29,6 +29,7 @@ describe('data formatting', function() {
   var data;
 
   before(function() {
+    this.timeout(5000);
     return importer("/Users/jeff/Library/Messages/chat.db").then(function(d) {
        data = d;
     });
@@ -53,12 +54,24 @@ describe('data formatting', function() {
   });
 
   it('each item has a unique sha', function() {
+    this.timeout(5000);
+
+    var shaMap = {};
+    var duplicates = [];
+
     var shas = _.map(data, function(d) {
-      return JSON.parse(d).sha;
+      var s = JSON.parse(d).sha;
+      if (shaMap[s]) {
+        duplicates.push(d);
+        duplicates.push(shaMap[s]);
+      }
+      shaMap[s] = d;
+      return s;
     });
 
     var uniques = _.unique(shas);
     expect(shas.length).to.be.equal(data.length, "each message should have a sha");
+    expect(duplicates.length).to.be.equal(0, "each sha should be unique " + JSON.stringify(duplicates));
   });
 
   it('each date is set properly and in ISO-8601 format', function() {
@@ -95,6 +108,4 @@ describe('data formatting', function() {
       });
     });
   });
-
-
 });

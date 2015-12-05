@@ -75,7 +75,7 @@ var QUERY = '' +
 '    INNER JOIN chat_message_join as cmj on cmj.chat_id = chj.chat_id ' +
 '    GROUP BY cmj.message_id, cmj.chat_id) as p on p.mid = m.rowid ' +
 'WHERE (text is not null or attachment is not null) ' + // Don't include this crap. They're bogus messages without anything. Not sure why they're in there
-'ORDER BY date LIMIT 1500';
+'ORDER BY date';
 
 function getConnection(path) {
   return new RSVP.Promise(function(resolve, reject) {
@@ -112,9 +112,6 @@ function uniqueId(row){
 function buildUniversalRow(row) {
   return {
     sha:            uniqueId(row),
-    _message_group: row.message_group,
-    _address:       row.address,
-    _me:            row.me,
     is_from_me:     row.is_from_me,
     date:           row.formatted_date,
     date_read:      row.formatted_date_read,
@@ -160,8 +157,8 @@ function mapParticipants(id, row) {
   participantMap[row.message_group] = map;
 }
 
-function formattedParticipantMapForMessage(message) {
-   var p = participantMap[message._message_group];
+function formattedParticipantMapForMessage(row) {
+   var p = participantMap[row.message_group];
     delete p[null];
    return Object.keys(p).sort();
 }
@@ -187,8 +184,7 @@ function setSenderAndReceiver(message) {
 }
 
 function prepareRow(row) {
-  var message = buildUniversalRow(row);
-  var sha  = message.sha;
+  var sha  = uniqueId(row);
 
   // this is called in order by date, so we'll remember the
   // order and retreive the keys in the same order
@@ -203,7 +199,7 @@ function prepareRow(row) {
 
   // So we'll map the message by sha and eliminate duplicates, and keep
   // track of the attachments by sha, and then relate them together at the end
-  mapMessage(sha, message);
+  mapMessage(sha, row);
 
   // We'll relate these later
   mapAttachment(sha, row);
@@ -214,17 +210,18 @@ function buildPayload() {
   var messages = [];
   for (var i = 0; i < ordered.length; i++) {
     var sha = ordered[i];
-    var message = messageMap[sha];
+    var row = messageMap[sha];
 
-    message.attachments  = formattedAttachmentsForMessage(message);
-    message.participants = formattedParticipantMapForMessage(message);
-    message              = setSenderAndReceiver(message);
+    if (row) {
+      // we don't want no dupes
+      var message           = buildUniversalRow(row);
+      message.attachments   = formattedAttachmentsForMessage(row);
+      message.participants  = formattedParticipantMapForMessage(row);
+      message               = setSenderAndReceiver(message);
 
-    // delete message._message_group;
-    // delete message._address;
-    // delete message._me;
-
-    messages.push(JSON.stringify(message));
+      delete messageMap[sha];
+      messages.push(JSON.stringify(message));
+    }
   }
 
   return messages;
