@@ -61,6 +61,7 @@ var QUERY = '' +
 '      WHEN 0 THEN Null ' +
 '      WHEN 1 THEN filename ' +
 '  END AS attachment, ' +
+'  a.mime_type as mime_type, ' +
 ' ' +
 '  m.service ' +
 ' ' +
@@ -75,7 +76,7 @@ var QUERY = '' +
 '    INNER JOIN chat_message_join as cmj on cmj.chat_id = chj.chat_id ' +
 '    GROUP BY cmj.message_id, cmj.chat_id) as p on p.mid = m.rowid ' +
 'WHERE (text is not null or attachment is not null) ' + // Don't include this crap. They're bogus messages without anything. Not sure why they're in there
-'ORDER BY date';
+'ORDER BY date DESC';
 
 function getConnection(path) {
   return new RSVP.Promise(function(resolve, reject) {
@@ -109,20 +110,21 @@ function uniqueId(row){
   return Crypto.createHash('sha1').update(JSON.stringify(info)).digest('hex');
 }
 
-function buildUniversalRow(row) {
+function buildBaseRow(sha, row) {
   return {
-    sha:            uniqueId(row),
+    sha:            sha,
     is_from_me:     row.is_from_me,
+    text:           row.text,
     date:           row.formatted_date,
     date_read:      row.formatted_date_read,
-    text:           row.text,
     service:        row.service
   };
 }
 
 function buildAttachmentRow(row) {
   return {
-    "path": row.attachment
+    "path":  row.attachment,
+    "type":  row.mime_type
   };
 }
 
@@ -149,7 +151,8 @@ function mapAttachment(id, row) {
   }
 }
 
-function mapParticipants(id, row) {
+function mapParticipants(row) {
+  // We don't want to map this to sha, we want the message group.
   var map = (participantMap[row.message_group] || {});
   // Using a hash so we can only deal in uniques
   map[row.address] = "";
@@ -157,15 +160,47 @@ function mapParticipants(id, row) {
   participantMap[row.message_group] = map;
 }
 
-function formattedParticipantMapForMessage(row) {
-   var p = participantMap[row.message_group];
-    delete p[null];
+function lookupParticipants(message_group) {
+   var p = participantMap[message_group];
+   delete p[null];
    return Object.keys(p).sort();
 }
 
-function formattedAttachmentsForMessage(message) {
-  var attachments =  attachmentMap[message.sha];
+function lookupAttachments(sha) {
+  var attachments =  attachmentMap[sha];
   return attachments ? attachments : [];
+}
+
+function buildContentSegments(message) {
+  // this is the object separator. This is a placeholder for an attachment, in the order the attachments are listed
+  var segments = [];
+  var parts = message.text.split("\uFFFC");
+  _.map(parts, function(part, index) {
+    if (part && part.length > 0) {
+      //TODO: Split out urls and add them as a link segment
+
+      segments.push({
+        type: 'text',
+        text: part
+      });
+    }
+    var attachment = message.attachments[index];
+    if (attachment) {
+      segments.push(attachment);
+    }
+  });
+
+
+
+
+  return segments;
+}
+
+function sourceInfo(message) {
+  return {
+    message_id: message.message_id,
+    message_group: message.message_group
+  };
 }
 
 function setSenderAndReceiver(message) {
@@ -203,7 +238,7 @@ function prepareRow(row) {
 
   // We'll relate these later
   mapAttachment(sha, row);
-  mapParticipants(sha, row);
+  mapParticipants(row);
 }
 
 function buildPayload() {
@@ -214,10 +249,14 @@ function buildPayload() {
 
     if (row) {
       // we don't want no dupes
-      var message           = buildUniversalRow(row);
-      message.attachments   = formattedAttachmentsForMessage(row);
-      message.participants  = formattedParticipantMapForMessage(row);
-      message               = setSenderAndReceiver(message);
+      var message              = buildBaseRow(sha, row);
+      message.attachments      = lookupAttachments(sha);
+      message.participants     = lookupParticipants(row.message_group);
+
+      message                  = setSenderAndReceiver(message);
+      message.content_segments = buildContentSegments(message);
+
+      message.source           = sourceInfo(row);
 
       delete messageMap[sha];
       messages.push(JSON.stringify(message));
