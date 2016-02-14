@@ -254,7 +254,7 @@ function buildPayload() {
       message.participants     = lookupParticipants(row.message_group);
 
       message                  = setSenderAndReceiver(message);
-      message.content_segments = buildContentSegments(message);
+      message.message_segments = buildContentSegments(message);
 
       message.source           = sourceInfo(row);
 

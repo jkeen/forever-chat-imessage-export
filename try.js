@@ -1,5 +1,5 @@
 var importer       = require('./index');
-
-var importData     = importer("/Users/jeff/Library/Messages/chat.db").then(function(d) {
-  // console.log(d);
+var expandHomeDir  = require('expand-home-dir');
+var importData     = importer(expandHomeDir("~/Library/Messages/chat.db")).then(function(d) {
+  console.log(d);
 });

@@ -26,8 +26,8 @@ describe("basics", function () {
   });
 });
 
-var formatTests    = require('forever-chat-format-tests');
-var importData     = importer("/Users/jeff/Library/Messages/chat.db");
+var formatTests    = require('forever-chat-format');
+var importData     = importer("test.db");
 formatTests(importData);
 
 importData.then(function(d) {
