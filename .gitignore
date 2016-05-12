@@ -1,2 +1,6 @@
 node_modules
 .DS_Store
+test/chat.db
+test/chat.db-shm
+test/chat.db-wal
+test.json

@@ -1,7 +1,7 @@
 var Sqlite3 = require('sqlite3').verbose();
 var RSVP    = require('rsvp');
 var Crypto  = require('crypto');
-var _       = require('underscore');
+var _       = require('lodash');
 
 var GROUP_SEPARATOR = '|*--*|';
 var QUERY = '' +
@@ -189,9 +189,6 @@ function buildContentSegments(message) {
       segments.push(attachment);
     }
   });
-
-
-
 
   return segments;
 }

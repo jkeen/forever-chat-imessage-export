@@ -1,5 +1,5 @@
 {
-  "name": "import-imessage",
+  "name": "forever-chat-imessage-export",
   "version": "0.0.1",
   "description": "Exports iMessage chat history into a universal chat format",
   "main": "index.js",
@@ -16,11 +16,13 @@
   "devDependencies": {
     "chai": "^3.4.1",
     "chai-as-promised": "^5.1.0",
-    "crypto": "0.0.3",
-    "expand-home-dir": "0.0.2",
-    "mocha": "^2.3.4",
+    "mocha": "^2.3.4"
+  },
+  "dependencies": {
     "rsvp": "^3.1.0",
     "sqlite3": "^3.1.1",
-    "underscore": "^1.8.3"
+    "crypto": "0.0.3",
+    "expand-home-dir": "0.0.2",
+    "lodash": "^4.12.0"
   }
 }
