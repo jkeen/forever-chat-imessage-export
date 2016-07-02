@@ -105,20 +105,18 @@ function reset() {
 }
 
 // Generates a unique ID to prevent duplicates
-function uniqueId(row){
-  var info = [row.address, row.date, row.text, row.service];
+function uniqueId(message){
+  var info = [message.participants, message.date, message.text, message.service];
   return Crypto.createHash('sha1').update(JSON.stringify(info)).digest('hex');
 }
 
-function buildBaseRow(sha, row) {
-  return {
-    sha:            sha,
-    is_from_me:     row.is_from_me,
-    text:           row.text,
-    date:           row.formatted_date,
-    date_read:      row.formatted_date_read,
-    service:        row.service
-  };
+function internalIdentifier(row) {
+  // This is used to identify a unique before outputting. This should not be
+  // the sha used to uniquely identify the chat message—that should use
+  // 'participants', which we generate
+
+  var info = [row.address, row.date, row.text, row.service];
+  return Crypto.createHash('sha1').update(JSON.stringify(info)).digest('hex');
 }
 
 function buildAttachmentRow(row) {
@@ -128,8 +126,8 @@ function buildAttachmentRow(row) {
   };
 }
 
-function rememberOrder(sha) {
-  ordered.push(sha);
+function rememberOrder(id) {
+  ordered.push(id);
 }
 
 function mapMessage(id, row) {
@@ -152,7 +150,7 @@ function mapAttachment(id, row) {
 }
 
 function mapParticipants(row) {
-  // We don't want to map this to sha, we want the message group.
+  // We don't want to map this to id/sha, we want the message group.
   var map = (participantMap[row.message_group] || {});
   // Using a hash so we can only deal in uniques
   map[row.address] = "";
@@ -193,13 +191,6 @@ function buildContentSegments(message) {
   return segments;
 }
 
-function sourceInfo(message) {
-  return {
-    message_id: message.message_id,
-    message_group: message.message_group
-  };
-}
-
 function setSenderAndReceiver(message) {
   if (message.is_from_me) {
     message.sender   = message._me;
@@ -216,11 +207,11 @@ function setSenderAndReceiver(message) {
 }
 
 function prepareRow(row) {
-  var sha  = uniqueId(row);
+  var _id  = internalIdentifier(row);
 
   // this is called in order by date, so we'll remember the
   // order and retreive the keys in the same order
-  rememberOrder(sha);
+  rememberOrder(_id);
 
   // For a message with multiple attachments, everything but the attachment
   // will be the same for each row
@@ -231,45 +222,72 @@ function prepareRow(row) {
 
   // So we'll map the message by sha and eliminate duplicates, and keep
   // track of the attachments by sha, and then relate them together at the end
-  mapMessage(sha, row);
+  mapMessage(_id, row);
 
   // We'll relate these later
-  mapAttachment(sha, row);
+  mapAttachment(_id, row);
   mapParticipants(row);
 }
 
 function buildPayload() {
   var messages = [];
   for (var i = 0; i < ordered.length; i++) {
-    var sha = ordered[i];
-    var row = messageMap[sha];
+    var _id = ordered[i];
+    var row = messageMap[_id];
 
     if (row) {
       // we don't want no dupes
-      var message              = buildBaseRow(sha, row);
-      message.attachments      = lookupAttachments(sha);
+      var message = {
+        is_from_me:     row.is_from_me,
+        text:           row.text,
+        date:           row.formatted_date,
+        date_read:      row.formatted_date_read,
+        service:        row.service
+      };
+
+      message.attachments      = lookupAttachments(_id);
       message.participants     = lookupParticipants(row.message_group);
 
-      message                  = setSenderAndReceiver(message);
+      if (message.is_from_me) {
+        message.sender   = row.me;
+        message.receiver = _.without(message.participants, row.me);
+      }
+      else {
+        message.sender = row.address;
+        message.receiver = _.without(message.participants, row.address);
+      }
+
       message.message_segments = buildContentSegments(message);
 
-      message.source           = sourceInfo(row);
+      message._debug = {
+        _id: _id,
+        message_id: message.message_id,
+        message_group: message.message_group
+      };
 
-      delete messageMap[sha];
-      messages.push(JSON.stringify(message));
+      // Uniquely idenfify this one message for outside use
+      message.sha = uniqueId(message);
+      messages.push(message);
     }
   }
 
   return messages;
 }
 
-module.exports = function(path, locale) {
+module.exports = function(path, limit) {
   reset();
+
+  var query = QUERY;
+
+  if (limit) {
+    query = query + " LIMIT " + limit;
+  }
 
   var promise = new RSVP.Promise(function(resolve, reject) {
     getConnection(path).then(function(db) {
       db.serialize(function() {
-        db.each(QUERY, function(error, row) {
+        db.each(query, function(error, row) {
+          // get an overall map for relating data
           prepareRow(row);
         }, function() { // FINISHED CALLBACK
 
