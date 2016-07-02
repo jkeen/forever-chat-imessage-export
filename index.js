@@ -75,8 +75,7 @@ var QUERY = '' +
 '    chat_handle_join as chj ' +
 '    INNER JOIN chat_message_join as cmj on cmj.chat_id = chj.chat_id ' +
 '    GROUP BY cmj.message_id, cmj.chat_id) as p on p.mid = m.rowid ' +
-'WHERE (text is not null or attachment is not null) ' + // Don't include this crap. They're bogus messages without anything. Not sure why they're in there
-'ORDER BY date DESC';
+'WHERE (text is not null or attachment is not null) ';  // Don't include this crap. They're bogus messages without anything. Not sure why they're in there
 
 function getConnection(path) {
   return new RSVP.Promise(function(resolve, reject) {
@@ -220,8 +219,8 @@ function prepareRow(row) {
   // e.g.  1   012125125  hello   /path/to/lionel_ritchie_photo_1
   // e.g.  1   012125125  hello   /path/to/lionel_ritchie_photo_2
 
-  // So we'll map the message by sha and eliminate duplicates, and keep
-  // track of the attachments by sha, and then relate them together at the end
+  // So we'll map the message by _id and eliminate duplicates, and keep
+  // track of the attachments by _id, and then relate them together at the end
   mapMessage(_id, row);
 
   // We'll relate these later
@@ -265,6 +264,7 @@ function buildPayload() {
         message_group: message.message_group
       };
 
+      delete messageMap[_id];
       // Uniquely idenfify this one message for outside use
       message.sha = uniqueId(message);
       messages.push(message);
@@ -274,15 +274,8 @@ function buildPayload() {
   return messages;
 }
 
-module.exports = function(path, limit) {
-  reset();
 
-  var query = QUERY;
-
-  if (limit) {
-    query = query + " LIMIT " + limit;
-  }
-
+function fetchResults(path, query) {
   var promise = new RSVP.Promise(function(resolve, reject) {
     getConnection(path).then(function(db) {
       db.serialize(function() {
@@ -302,4 +295,25 @@ module.exports = function(path, limit) {
   });
 
   return promise;
+}
+
+module.exports = function(path, options) {
+  reset();
+
+  var query = QUERY;
+
+  if (!options) {
+    options = {};
+  }
+
+  if (options.sinceDate) {
+    query += " AND date >= (strftime('%s', '" + options.sinceDate + "') -978307200) ";
+  }
+
+  query += 'ORDER BY date DESC';
+
+  if (options.limit) {
+    query = query + " LIMIT " + options.limit;
+  }
+  return fetchResults(path, query);
 };
