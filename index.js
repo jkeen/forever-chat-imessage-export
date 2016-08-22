@@ -171,21 +171,27 @@ function lookupAttachments(sha) {
 function buildContentSegments(message) {
   // this is the object separator. This is a placeholder for an attachment, in the order the attachments are listed
   var segments = [];
-  var parts = message.text.split("\uFFFC");
-  _.map(parts, function(part, index) {
-    if (part && part.length > 0) {
-      //TODO: Split out urls and add them as a link segment
 
-      segments.push({
-        type: 'text',
-        text: part
-      });
-    }
-    var attachment = message.attachments[index];
-    if (attachment) {
-      segments.push(attachment);
-    }
-  });
+  if (message.text) {
+    var parts = message.text.split("\uFFFC");
+    _.map(parts, function(part, index) {
+      if (part && part.length > 0) {
+        //TODO: Split out urls and add them as a link segment
+
+        segments.push({
+          type: 'text',
+          text: part
+        });
+      }
+      var attachment = message.attachments[index];
+      if (attachment) {
+        segments.push(attachment);
+      }
+    });
+  }
+  else if (message.attachments) {
+    segments = message.attachments;
+  }
 
   return segments;
 }
