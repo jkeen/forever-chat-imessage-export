@@ -20,10 +20,13 @@
     "mocha": "^2.3.4"
   },
   "dependencies": {
-    "rsvp": "^3.1.0",
-    "sqlite3": "^3.1.1",
     "crypto": "0.0.3",
     "expand-home-dir": "0.0.2",
-    "lodash": "^4.12.0"
+    "fs": "0.0.1-security",
+    "lodash": "^4.12.0",
+    "os": "^0.1.1",
+    "plist": "^2.0.1",
+    "rsvp": "^3.1.0",
+    "sqlite3": "^3.1.1"
   }
 }

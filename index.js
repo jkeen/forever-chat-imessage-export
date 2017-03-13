@@ -1,81 +1,20 @@
-var Sqlite3 = require('sqlite3').verbose();
-var RSVP    = require('rsvp');
-var Crypto  = require('crypto');
-var _       = require('lodash');
+var Sqlite3       = require('sqlite3').verbose();
+var RSVP          = require('rsvp');
+var Crypto        = require('crypto');
+var _             = require('lodash');
+var fs            = require('fs');
+var os            = require('os');
+var plist         = require('plist');
+var expandHomeDir = require('expand-home-dir');
+var darwinToOSNames = {
+  "12": "Mountain Lion",
+  "13": "Mavericks",
+  "14": "Yosemite",
+  "15": "El Capitan",
+  "16": "Sierra"
+};
 
 var GROUP_SEPARATOR = '|*--*|';
-var QUERY = '' +
-'  SELECT ' +
-'  m.rowid as message_id, ' +
-' ' +
-'  (SELECT chat_id FROM chat_message_join WHERE chat_message_join.message_id = m.rowid) as message_group, ' +
-' ' +
-'  CASE p.participant_count ' +
-'      WHEN 0 THEN "???" ' +
-'      WHEN 1 THEN "Individual" ' +
-'      ELSE "Group" ' +
-'  END AS chat_type, ' +
-' ' +
-'  date, ' +
-' ' +
-'  id AS address, ' +
-' ' +
-'  (SELECT c.account_login FROM chat as c WHERE c.rowid = (SELECT chat_id FROM chat_message_join WHERE chat_message_join.message_id = m.rowid)) as account_login, ' +
-' ' +
-'  (SELECT GROUP_CONCAT(id, "' + GROUP_SEPARATOR + '") FROM handle as h2 ' +
-'    INNER JOIN chat_message_join AS cmj2 ON h2.rowid = chj2.handle_id ' +
-'    INNER JOIN chat_handle_join AS chj2 ON cmj2.chat_id = chj2.chat_id ' +
-'    WHERE cmj2.message_id = m.rowid) AS participants, ' +
-' ' +
-'  is_from_me, ' +
-' ' +
-'  strftime("%Y-%m-%dT%H:%M:%S", DATETIME(date +978307200, "unixepoch")) AS formatted_date, ' +
-' ' +
-'  CASE is_from_me ' +
-'    WHEN 1 THEN ' +
-'      coalesce(coalesce(last_addressed_handle, account_login), id) ' +
-'    ELSE ' +
-'      coalesce(last_addressed_handle, account_login) ' +
-'  END AS me, ' +
-' ' +
-'  CASE is_from_me ' +
-'      WHEN 0 THEN "Received" ' +
-'      WHEN 1 THEN "Sent" ' +
-'      ELSE is_from_me ' +
-'  END AS type, ' +
-' ' +
-'  text, ' +
-' ' +
-'  CASE date_read ' +
-'    WHEN 0 THEN null ' +
-'    ELSE strftime("%Y-%m-%dT%H:%M:%S", DATETIME(date_read +978307200, "unixepoch")) ' +
-'  END AS formatted_date_read, ' +
-' ' +
-'  CASE date_delivered ' +
-'    WHEN 0 THEN null ' +
-'    ELSE strftime("%Y-%m-%dT%H:%M:%S", DATETIME(date_delivered +978307200, "unixepoch")) ' +
-'  END AS formatted_date_delivered, ' +
-' ' +
-' ' +
-'  CASE cache_has_attachments ' +
-'      WHEN 0 THEN Null ' +
-'      WHEN 1 THEN filename ' +
-'  END AS attachment, ' +
-'  a.mime_type as mime_type, ' +
-' ' +
-'  m.service ' +
-' ' +
-'FROM message AS m ' +
-'LEFT JOIN message_attachment_join AS maj ON maj.message_id = m.rowid ' +
-'LEFT JOIN attachment AS a ON a.rowid = maj.attachment_id ' +
-'LEFT JOIN handle AS h ON h.rowid = m.handle_id ' +
-'LEFT JOIN chat_message_join as chj ON chj.message_id = m.rowid ' +
-'LEFT JOIN chat as ch ON chj.chat_id = ch.ROWID ' +
-'LEFT JOIN (SELECT count(*) as participant_count, cmj.chat_id, cmj.message_id as mid FROM ' +
-'    chat_handle_join as chj ' +
-'    INNER JOIN chat_message_join as cmj on cmj.chat_id = chj.chat_id ' +
-'    GROUP BY cmj.message_id, cmj.chat_id) as p on p.mid = m.rowid ' +
-'WHERE (text is not null or attachment is not null) ';  // Don't include this crap. They're bogus messages without anything. Not sure why they're in there
 
 function getConnection(path) {
   return new RSVP.Promise(function(resolve, reject) {
@@ -280,22 +219,21 @@ function buildPayload() {
   return messages;
 }
 
-
-function fetchResults(path, query) {
+function getClientVersion(path) {
   var promise = new RSVP.Promise(function(resolve, reject) {
     getConnection(path).then(function(db) {
       db.serialize(function() {
-        db.each(query, function(error, row) {
-          // get an overall map for relating data
-          prepareRow(row);
+        var clientVersion;
+        db.each("SELECT value from _SqliteDatabaseProperties WHERE key = '_ClientVersion'", function(error, row) {
+          clientVersion = row.value;
         }, function() { // FINISHED CALLBACK
-
-          var messages = buildPayload();
-          resolve(messages);
+          resolve(clientVersion);
         });
       });
       db.close();
     }, function(reason) {
+      console.log("couldn't open database");
+      console.log(reason);
       reject("Couldn't open selected database");
     });
   });
@@ -303,15 +241,67 @@ function fetchResults(path, query) {
   return promise;
 }
 
-module.exports = function(path, options) {
-  reset();
+// I know about these client versions
+// 10013 - iOS 10     - 2017
+// 9005  - iOS 9      - 2015
+// 8008  - iOS 8      - 2014
+// 7006  - iOS 7      - 2013
+// 6100  - iOS 6.1.2  - 2014
+// 36    - iOS 6      - 2012
+// 21    - iOS 5      - 2011
+// 11    - iOS4       - iPhone 3G, 2010
+function getQueryForClientVersion(version) {
+  version = parseInt(version);
+  var queryFile;
+  if (version >= 10000) {
+    console.log('found iOS 10 database');
+    queryFile = 'ios9.sql';
+  }
+  else if (version >= 9000) {
+    console.log('found iOS 9 database');
+    queryFile = 'ios9.sql';
+  }
+  else {
+    console.log('Not sure how to work with database version: ' + version);
+  }
+  // else if (version >= 8000) {
+  //   console.log('found iOS 8 database');
+  //   // queryFile = "ios8.sql";
+  // }
+  // else if (version >= 7000) {
+  //   console.log('found iOS 7 database');
+  //
+  // }
+  // else if (version >= 36) {
+  //   console.log('found iOS 6 database');
+  //
+  // }
+  // else if (version >= 21) {
+  //   console.log('found iOS 5 database');
+  //
+  // }
+  // else if (version >= 11) {
+  //   console.log('found iOS 4 database');
+  //
+  // }
 
-  var query = QUERY;
 
+  if (queryFile) {
+    var query = _.trim(fs.readFileSync(('queries/' + queryFile), 'utf8').toString()
+      .replace(/(\r\n|\n|\r)/gm," ")
+      .replace(/\s+/g, ' ')) + ';';
+
+    return query;
+  }
+  else {
+    return false;
+  }
+}
+
+function addQueryOptions(query, options) {
   if (!options) {
     options = {};
   }
-
   if (options.sinceDate) {
     query += " AND date >= (strftime('%s', '" + options.sinceDate + "') -978307200) ";
   }
@@ -321,5 +311,54 @@ module.exports = function(path, options) {
   if (options.limit) {
     query = query + " LIMIT " + options.limit;
   }
-  return fetchResults(path, query);
-};
+
+  return query;
+}
+
+function fetchResults(path, query) {
+  var promise = new RSVP.Promise(function(resolve, reject) {
+    getConnection(path).then(function(db) {
+      db.serialize(function() {
+        db.each(query, function(error, row) {
+          // get an overall map for relating data
+          prepareRow(row);
+        }, function() { // FINISHED CALLBACK
+          var messages = buildPayload();
+          resolve(messages);
+        });
+      });
+      db.close();
+    }, function(reason) {
+      console.log("couldn't open database");
+      console.log(reason);
+      reject("Couldn't open selected database");
+    });
+  });
+
+  return promise;
+}
+
+module.exports =  function(path, options) {
+  reset();
+  var dbPath;
+  if (fs.lstatSync(path).isDirectory()) {
+    dbPath = path + '/3d0d7e5fb2ce288813306e4d4636395e047a3d28';
+  }
+  else {
+    dbPath = path;
+  }
+
+  if (fs.lstatSync(dbPath).isFile()) {
+    return getClientVersion(dbPath).then(function(versionString) {
+      reset();
+      var query         = getQueryForClientVersion(versionString);
+      query             = addQueryOptions(query, options);
+      console.log("Looking for info at path: " + dbPath);
+      return fetchResults(dbPath, query);
+    });
+  }
+  else {
+    return RSVP.Promise.reject();
+    // file not found
+  }
+}

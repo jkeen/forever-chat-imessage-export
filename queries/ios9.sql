@@ -67,5 +67,5 @@ LEFT JOIN (SELECT count(*) as participant_count, cmj.chat_id, cmj.message_id as 
     chat_handle_join as chj
     INNER JOIN chat_message_join as cmj on cmj.chat_id = chj.chat_id
     GROUP BY cmj.message_id, cmj.chat_id) as p on p.mid = m.rowid
-WHERE (text is not null or attachment is not null) 
+WHERE (text is not null or attachment is not null)
 ORDER BY date
