@@ -55,6 +55,8 @@ SELECT
       WHEN 1 THEN filename
   END AS attachment,
 
+  a.mime_type as attachment_mime_type,
+
   m.service
 
 FROM message AS m

@@ -25,11 +25,11 @@ module.exports =  function(path, options) {
 
   if (fs.lstatSync(dbPath).isFile()) {
     return getVersion(dbPath).then(function(version) {
-      if (version >= 9) {
-        return loadFromModernOSX(dbPath, version, options);
-      }
-      else if (version === 5) {
+      if (version <= 5) {
         return loadFromMadridiOS(dbPath, version, options);
+      }
+      else {
+        return loadFromModernOSX(dbPath, version, options);
       }
     });
   }

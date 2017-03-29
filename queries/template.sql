@@ -32,8 +32,9 @@ SELECT
   NULL AS formatted_date_delivered,
 
   NULL AS attachment,
+  NULL AS attachment_mime_type,
 
-  NUL as service
+  NULL as service
 
 FROM message AS m
 ORDER BY date
