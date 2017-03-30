@@ -28,19 +28,20 @@ describe("basics", function () {
 });
 
 var formatTests    = require('forever-chat-format');
-var importData     = importer(expandHomeDir("test/chat.db"));
 
-formatTests(importData);
+formatTests(importer(expandHomeDir("test/dbs/9006_h.db")), "iOS 9");
+formatTests(importer(expandHomeDir("test/dbs/8010.db")), "iOS 8");
+formatTests(importer(expandHomeDir("test/dbs/21.db")), "iOS 5");
 
-describe("not so basics", function () {
+describe("not so basics for iOS 8", function () {
   it('should only return a set number of records when provided with a limit', function() {
-    return importer(expandHomeDir("test/chat.db"), {limit: 5}).then(function(data) {
+    return importer(expandHomeDir("test/dbs/8010.db"), {limit: 5}).then(function(data) {
       expect(data.length).to.equal(5);
     });
   });
 
   it('should only return records after a date when provided with that date', function() {
-    return importer(expandHomeDir("test/chat.db"), {sinceDate: "2015-11-16"}).then(function(data) {
+    return importer(expandHomeDir("test/dbs/8010.db"), {sinceDate: "2015-11-16"}).then(function(data) {
       var failures = [];
       var successes = [];
 

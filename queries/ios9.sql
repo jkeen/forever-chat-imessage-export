@@ -49,7 +49,6 @@ SELECT
     ELSE strftime("%Y-%m-%dT%H:%M:%S", DATETIME(date_delivered +978307200, "unixepoch"))
   END AS formatted_date_delivered,
 
-
   CASE cache_has_attachments
       WHEN 0 THEN Null
       WHEN 1 THEN filename

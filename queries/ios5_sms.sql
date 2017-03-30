@@ -15,7 +15,7 @@ CASE m.flags when 3 then 1
 else 0
 end as 'is_from_me',
 
-datetime(m.date, 'unixepoch','localtime') as formatted_date,
+strftime("%Y-%m-%dT%H:%M:%S", datetime(m.date, 'unixepoch','localtime')) as formatted_date,
 
 (SELECT account_login from madrid_chat where account_login LIKE '%P:%' LIMIT 1) as 'me',
 
@@ -43,3 +43,4 @@ from message as m
 LEFT OUTER JOIN msg_group as mg on m.group_id = mg.rowid
 LEFT OUTER JOIN msg_pieces as mp on m.rowid = mp.message_id
 where is_madrid=0
+group by message_group, participants, text, chat_type
