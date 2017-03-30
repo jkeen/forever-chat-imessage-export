@@ -7,6 +7,7 @@ var loadQuery            = require('./lib/load-query');
 var getVersion           = require('./lib/get-version');
 var loadFromModernOSX    = require('./lib/load-from-modern-osx');
 var loadFromMadridiOS    = require('./lib/load-from-madrid-ios');
+var openDB               = require('./lib/open-db');
 
 function getDbPath(path) {
   var dbPath;
@@ -21,20 +22,27 @@ function getDbPath(path) {
 }
 
 module.exports =  function(path, options) {
-  var dbPath = getDbPath(path);
+  var dbPath       = getDbPath(path);
+  let databaseFile = fs.lstatSync(dbPath);
 
-  if (fs.lstatSync(dbPath).isFile()) {
-    return getVersion(dbPath).then(function(version) {
-      if (version <= 5) {
-        return loadFromMadridiOS(dbPath, version, options);
-      }
-      else {
-        return loadFromModernOSX(dbPath, version, options);
-      }
-    });
-  }
-  else {
-    return RSVP.Promise.reject();
-    // file not found
-  }
+  return new RSVP.Promise((resolve, reject) => {
+    if (dbPath && fs.lstatSync(dbPath).isFile()) {
+      openDB(path).then(db => {
+        getVersion(db).then(function(version) {
+          if (version <= 5) {
+            return loadFromMadridiOS(db, version, options);
+          }
+          else {
+            return loadFromModernOSX(db, version, options);
+          }
+        }).then(results => {
+          resolve(results);
+          db.close();
+        });
+      }).catch(reason => reject("Couldn't open selected database"));
+    }
+    else {
+      reject("Couldn't open selected database");
+    }
+  });
 };
