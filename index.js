@@ -9,40 +9,53 @@ var loadFromModernOSX    = require('./lib/load-from-modern-osx');
 var loadFromMadridiOS    = require('./lib/load-from-madrid-ios');
 var openDB               = require('./lib/open-db');
 
-function getDbPath(path) {
-  var dbPath;
-  if (fs.lstatSync(path).isDirectory()) {
-    dbPath = path + '/3d0d7e5fb2ce288813306e4d4636395e047a3d28';
-  }
-  else {
-    dbPath = path;
-  }
-
-  return dbPath;
+function fetchVersionSpecificResults(db) {
+  return getVersion(db).then(function(version) {
+    if (version <= 5) {
+      return loadFromMadridiOS(db, version, options);
+    }
+    else {
+      return loadFromModernOSX(db, version, options);
+    }
+  });
 }
 
 module.exports =  function(path, options) {
-  var dbPath       = getDbPath(path);
-  let databaseFile = fs.lstatSync(dbPath);
+  var promise = new RSVP.Promise((resolve, reject) => {
+    try {
+      let dbPath = fs.lstatSync(path);
 
-  return new RSVP.Promise((resolve, reject) => {
-    if (dbPath && fs.lstatSync(dbPath).isFile()) {
-      openDB(path).then(db => {
-        getVersion(db).then(function(version) {
-          if (version <= 5) {
-            return loadFromMadridiOS(db, version, options);
-          }
-          else {
-            return loadFromModernOSX(db, version, options);
-          }
-        }).then(results => {
-          resolve(results);
-          db.close();
-        });
-      }).catch(reason => reject("Couldn't open selected database"));
+      if (fs.lstatSync(path).isDirectory()) {
+        dbPath = fs.lstatSync(path + '/3d0d7e5fb2ce288813306e4d4636395e047a3d28')
+      }
+      else if (fs.lstatSync(path).isFile()){
+        dbPath = path;
+      }
+      else {
+        reject("Couldn't open selected database");
+      }
     }
-    else {
+    catch(e) {
       reject("Couldn't open selected database");
     }
+
+    openDB(path).then(db => {
+      return getVersion(db).then(function(version) {
+        if (version <= 5) {
+          return loadFromMadridiOS(db, version, options);
+        }
+        else {
+          return loadFromModernOSX(db, version, options);
+        }
+      }).then(results => {
+        resolve(results);
+        db.close();
+      });
+
+    }, function(reason) {
+      reject("Couldn't open selected database");
+    });
   });
+
+  return promise;
 };
