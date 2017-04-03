@@ -29,7 +29,7 @@ case m.flags
 	when 129 then 'Deleted'
 	else 'Unknown' end as type,
 
-'SMS' as service,
+'sms' as service,
 
 m.subject as subject,
 m.flags as raw_type,

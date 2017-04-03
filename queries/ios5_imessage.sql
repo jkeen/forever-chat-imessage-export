@@ -62,7 +62,7 @@ when 102405 then 'Sent'
 when 32773 then 'Sent'
 else 'Unknown' end as type,
 
-m.madrid_service as service,
+'imessage' as service,
 m.flags as raw_type,
 m.text as text,
 cast(m.madrid_attachmentInfo as text) as _attachment_info
@@ -70,4 +70,4 @@ cast(m.madrid_attachmentInfo as text) as _attachment_info
 FROM message as m
 LEFT OUTER JOIN madrid_chat as mc on m.madrid_roomname = mc.room_name
 left outer join msg_pieces as mp on mp.message_id = m.rowid
-where is_madrid = 1 
+where is_madrid = 1
