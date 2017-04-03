@@ -10,4 +10,3 @@ It would be great to get a sample chat.db database for testing. I'm using my own
 
 - Send errors
 - Fix some attachment paths that are buried inside iOS databases
-- Format phone numbers using node-phone?

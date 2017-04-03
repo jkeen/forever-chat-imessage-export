@@ -29,9 +29,14 @@ describe("basics", function () {
 
 var formatTests    = require('forever-chat-format');
 
-formatTests(importer(expandHomeDir("test/dbs/9006_h.db")), "iOS 9");
-formatTests(importer(expandHomeDir("test/dbs/8010.db")), "iOS 8");
 formatTests(importer(expandHomeDir("test/dbs/21.db")), "iOS 5");
+
+formatTests(importer(expandHomeDir("test/dbs/36.db")), "iOS 6.0");
+formatTests(importer(expandHomeDir("test/dbs/6001.db")), "iOS 6.1");
+formatTests(importer(expandHomeDir("test/dbs/7006.db")), "iOS 7");
+formatTests(importer(expandHomeDir("test/dbs/8010.db")), "iOS 8");
+formatTests(importer(expandHomeDir("test/dbs/9005.db")), "iOS 9");
+formatTests(importer(expandHomeDir("test/dbs/9006_h.db")), "iOS 9 (Homer)");
 
 describe("not so basics for iOS 8", function () {
   it('should only return a set number of records when provided with a limit', function() {

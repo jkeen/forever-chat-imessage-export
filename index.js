@@ -22,11 +22,12 @@ function fetchVersionSpecificResults(db) {
 
 module.exports =  function(path, options) {
   var promise = new RSVP.Promise((resolve, reject) => {
-    try {
-      let dbPath = fs.lstatSync(path);
+    var dbPath = null;
 
+    try {
       if (fs.lstatSync(path).isDirectory()) {
-        dbPath = fs.lstatSync(path + '/3d0d7e5fb2ce288813306e4d4636395e047a3d28')
+        log.debug("Found directory, looking for /3d0d7e5fb2ce288813306e4d4636395e047a3d28");
+        dbPath = path + '/3d0d7e5fb2ce288813306e4d4636395e047a3d28';
       }
       else if (fs.lstatSync(path).isFile()){
         dbPath = path;
@@ -34,27 +35,28 @@ module.exports =  function(path, options) {
       else {
         reject("Couldn't open selected database");
       }
+
+      openDB(dbPath).then(db => {
+        return getVersion(db).then(function(version) {
+          log.debug("Found database version " + version);
+          if (version <= 5) {
+            return loadFromMadridiOS(db, version, options);
+          }
+          else {
+            return loadFromModernOSX(db, version, options);
+          }
+        }).then(results => {
+          resolve(results);
+          db.close();
+        });
+
+      }, function(reason) {
+        reject("Couldn't open selected database");
+      });
     }
     catch(e) {
       reject("Couldn't open selected database");
     }
-
-    openDB(path).then(db => {
-      return getVersion(db).then(function(version) {
-        if (version <= 5) {
-          return loadFromMadridiOS(db, version, options);
-        }
-        else {
-          return loadFromModernOSX(db, version, options);
-        }
-      }).then(results => {
-        resolve(results);
-        db.close();
-      });
-
-    }, function(reason) {
-      reject("Couldn't open selected database");
-    });
   });
 
   return promise;
