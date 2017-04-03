@@ -4,7 +4,7 @@
   "description": "Exports iMessage chat history into a universal chat format",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --reporter spec --timeout 45000"
+    "test": "mocha --reporter spec --timeout 90000"
   },
   "keywords": [
     "imessage",
@@ -14,10 +14,12 @@
   "author": "Jeff Keen",
   "license": "ISC",
   "devDependencies": {
-    "chai": "^3.4.1",
-    "chai-as-promised": "^5.1.0",
+    "chai": "^3.5.0",
+    "chai-as-promised": "^5.3.0",
     "forever-chat-format": "^1.0.0",
-    "mocha": "^2.3.4",
+    "lodash": "^4.17.4",
+    "mocha": "^2.5.3",
+    "phone": "^1.0.9"
   },
   "dependencies": {
     "crypto": "0.0.3",

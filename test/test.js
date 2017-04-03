@@ -9,6 +9,8 @@ var expandHomeDir  = require('expand-home-dir');
 chai.use(chaiAsPromised);
 
 var _this = this;
+var formatTests    = require('forever-chat-format');
+
 describe("basics", function () {
   it('should throw an error when called without a path', function() {
     var imessageImport = importer();
