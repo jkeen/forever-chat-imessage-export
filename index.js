@@ -8,6 +8,7 @@ var getVersion           = require('./lib/get-version');
 var loadFromModernOSX    = require('./lib/load-from-modern-osx');
 var loadFromMadridiOS    = require('./lib/load-from-madrid-ios');
 var openDB               = require('./lib/open-db');
+var debug                = require('./lib/debug');
 
 function fetchVersionSpecificResults(db) {
   return getVersion(db).then(function(version) {
@@ -26,7 +27,7 @@ module.exports =  function(path, options) {
 
     try {
       if (fs.lstatSync(path).isDirectory()) {
-        log.debug("Found directory, looking for /3d0d7e5fb2ce288813306e4d4636395e047a3d28");
+        debug("Found directory, looking for /3d0d7e5fb2ce288813306e4d4636395e047a3d28");
         dbPath = path + '/3d0d7e5fb2ce288813306e4d4636395e047a3d28';
       }
       else if (fs.lstatSync(path).isFile()){
@@ -38,15 +39,21 @@ module.exports =  function(path, options) {
 
       openDB(dbPath).then(db => {
         return getVersion(db).then(function(version) {
-          log.debug("Found database version " + version);
-          if (version <= 5) {
-            return loadFromMadridiOS(db, version, options);
+          debug("Found database version " + version);
+          if (version && version > 0) {
+            if (version <= 5) {
+              return loadFromMadridiOS(db, version, options);
+            }
+            else {
+              return loadFromModernOSX(db, version, options);
+            }
           }
           else {
-            return loadFromModernOSX(db, version, options);
+            reject("Couldn't open selected database")
           }
         }).then(results => {
           resolve(results);
+        }).finally(() => {
           db.close();
         });
 
