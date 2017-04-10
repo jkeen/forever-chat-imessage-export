@@ -97,14 +97,16 @@
     let options = program
       .version('0.0.1')
       .option('-d, --debug', 'Turn on debugging')
+      .option('-l, --limit [value]', 'Only return the last X records')
+      .option('-s, --sinceDate [YYYY-MM-DD]', 'Only return records since date')
       .parse(process.argv);
 
     if (options.debug) console.log('- debugging on');
-
-
+    if (options.limit) console.log(`limited to ${options.limit}`);
+    if (options.sinceDate) console.log(`only getting entries since ${options.sinceDate}`);
 
     exporter.importData(path, options).then(data => {
-      console.log(prettyoutput(data));
+      console.log(prettyoutput(data, {maxDepth: 5}));
     });
   }
 })();
