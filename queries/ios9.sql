@@ -26,7 +26,7 @@ SELECT
 
   CASE is_from_me
     WHEN 1 THEN
-      coalesce(coalesce(last_addressed_handle, account_login), id)
+      coalesce(last_addressed_handle, account_login)
     ELSE
       coalesce(last_addressed_handle, account_login)
   END AS me,

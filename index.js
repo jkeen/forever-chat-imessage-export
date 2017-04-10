@@ -1,70 +1,110 @@
-var Sqlite3              = require('sqlite3').verbose();
-var Promise              = require('bluebird');
-var _                    = require('lodash');
-var fs                   = require('fs');
-var expandHomeDir        = require('expand-home-dir');
-var loadQuery            = require('./lib/load-query');
-var getVersion           = require('./lib/get-version');
-var loadFromModernOSX    = require('./lib/load-from-modern-osx');
-var loadFromMadridiOS    = require('./lib/load-from-madrid-ios');
-var openDB               = require('./lib/open-db');
-var debug                = require('./lib/debug');
+#!/usr/bin/env node
 
-function fetchVersionSpecificResults(db) {
-  return getVersion(db).then(function(version) {
-    if (version <= 5) {
-      return loadFromMadridiOS(db, version, options);
-    }
-    else {
-      return loadFromModernOSX(db, version, options);
-    }
-  });
-}
+(function(){
+  var logger               = require('./lib/debug-log');
+  var Sqlite3              = require('sqlite3').verbose();
+  var Promise              = require('bluebird');
+  var _                    = require('lodash');
+  var fs                   = require('fs');
+  var expandHomeDir        = require('expand-home-dir');
+  var loadQuery            = require('./lib/load-query');
+  var getVersion           = require('./lib/get-version');
+  var loadFromModernOSX    = require('./lib/load-from-modern-osx');
+  var loadFromMadridiOS    = require('./lib/load-from-madrid-ios');
+  var openDB               = require('./lib/open-db');
+  var prettyoutput         = require('prettyoutput');
 
-module.exports =  function(path, options) {
-  var promise = new Promise((resolve, reject) => {
-    var dbPath = null;
-
-    try {
-      if (fs.lstatSync(path).isDirectory()) {
-        debug("Found directory, looking for /3d0d7e5fb2ce288813306e4d4636395e047a3d28");
-        dbPath = path + '/3d0d7e5fb2ce288813306e4d4636395e047a3d28';
-      }
-      else if (fs.lstatSync(path).isFile()){
-        dbPath = path;
+  function fetchVersionSpecificResults(db) {
+    return getVersion(db).then(function(version) {
+      if (version <= 5) {
+        return loadFromMadridiOS(db, version, options);
       }
       else {
-        reject("Couldn't open selected database");
+        return loadFromModernOSX(db, version, options);
       }
+    });
+  }
 
-      openDB(dbPath).then(db => {
-        return getVersion(db).then(function(version) {
-          debug("Found database version " + version);
-          if (version && version > 0) {
-            if (version <= 5) {
-              return loadFromMadridiOS(db, version, options);
+  var exporter = {};
+  exporter.importData = function(path, options) {
+    logger.setEnabled(!!options.debug);
+
+    var promise = new Promise((resolve, reject) => {
+      var dbPath = null;
+
+      try {
+        if (fs.lstatSync(path).isDirectory()) {
+          logger.log("Found directory, looking for /3d0d7e5fb2ce288813306e4d4636395e047a3d28");
+          dbPath = path + '/3d0d7e5fb2ce288813306e4d4636395e047a3d28';
+        }
+        else if (fs.lstatSync(path).isFile()){
+          dbPath = path;
+        }
+        else {
+          reject("Couldn't open selected database");
+        }
+
+        openDB(dbPath).then(db => {
+          return getVersion(db).then(function(version) {
+            logger.log("Found database version " + version);
+            if (version && version > 0) {
+              if (version <= 5) {
+                return loadFromMadridiOS(db, version, options);
+              }
+              else {
+                return loadFromModernOSX(db, version, options);
+              }
             }
             else {
-              return loadFromModernOSX(db, version, options);
+              reject("Couldn't open selected database")
             }
-          }
-          else {
-            reject("Couldn't open selected database")
-          }
-        }).then(results => {
-          resolve(results);
-        }).finally(() => {
-          db.close();
+          }).then(messages => {
+
+            let results = {
+              messages: messages,
+            };
+
+            resolve(results);
+          }).finally(() => {
+            db.close();
+          });
+
+        }, function(reason) {
+          reject("Couldn't open selected database");
         });
-
-      }, function(reason) {
+      }
+      catch(e) {
         reject("Couldn't open selected database");
-      });
-    }
-    catch(e) {
-      reject("Couldn't open selected database");
-    }
-  });
+      }
+    });
 
-  return promise;
-};
+    return promise;
+  };
+
+
+
+  module.exports = exporter.importData;
+
+  if (!module.parent) {
+    const program = require('commander');
+
+    let path = process.argv[2];
+    if (!path) {
+      console.log('USAGE: forever-chat-imessage-export [path] [options]');
+      return;
+    }
+
+    let options = program
+      .version('0.0.1')
+      .option('-d, --debug', 'Turn on debugging')
+      .parse(process.argv);
+
+    if (options.debug) console.log('- debugging on');
+
+
+
+    exporter.importData(path, options).then(data => {
+      console.log(prettyoutput(data));
+    });
+  }
+})();

@@ -12,6 +12,7 @@ coalesce(m.address, m.madrid_handle) as address,
   WHERE g.group_id = m.group_id) AS participants,
 
 CASE m.flags when 3 then 1
+when 16387 then 1
 else 0
 end as 'is_from_me',
 
@@ -27,6 +28,7 @@ case m.flags
 	when 3 then 'Sent'
 	when 33 then 'Send Failed'
 	when 129 then 'Deleted'
+	when 16387 then 'Sent'
 	else 'Unknown' end as type,
 
 'sms' as service,
@@ -42,5 +44,6 @@ mp.content_id as attachment_id
 from message as m
 LEFT OUTER JOIN msg_group as mg on m.group_id = mg.rowid
 LEFT OUTER JOIN msg_pieces as mp on m.rowid = mp.message_id
+
 where is_madrid=0
 group by message_group, participants, text, chat_type
