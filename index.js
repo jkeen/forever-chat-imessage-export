@@ -1,5 +1,5 @@
 var Sqlite3              = require('sqlite3').verbose();
-var RSVP                 = require('rsvp');
+var Promise              = require('bluebird');
 var _                    = require('lodash');
 var fs                   = require('fs');
 var expandHomeDir        = require('expand-home-dir');
@@ -21,7 +21,7 @@ function fetchVersionSpecificResults(db) {
 }
 
 module.exports =  function(path, options) {
-  var promise = new RSVP.Promise((resolve, reject) => {
+  var promise = new Promise((resolve, reject) => {
     var dbPath = null;
 
     try {
