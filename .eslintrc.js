@@ -19,6 +19,7 @@ module.exports = {
     ],
     "quotes": 0,
     "no-extra-boolean-cast": 0,
+    "no-console": 0,
     "no-var": 0,
     "semi": [
       "error",

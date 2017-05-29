@@ -10,9 +10,11 @@
   var loadFromMadridiOS    = require('./lib/load-from-madrid-ios');
   var openDB               = require('./lib/open-db');
   var prettyoutput         = require('prettyoutput');
+  var {validate}           = require('forever-chat-format');
 
   var exporter = {
     importData: function(path, options) {
+      if (!options) options = {};
       logger.setEnabled(!!options.debug);
 
       var promise = new Promise((resolve, reject) => {
@@ -48,6 +50,7 @@
 
               let results = {
                 messages: messages,
+                validations: validate(messages)
               };
 
               resolve(results);

@@ -14,15 +14,15 @@
   "author": "Jeff Keen",
   "license": "ISC",
   "devDependencies": {
-    "chai": "^3.5.0",
-    "chai-as-promised": "^5.3.0",
     "eslint": "^3.19.0",
     "eslint-config-airbnb-base": "^11.2.0",
     "eslint-plugin-import": "^2.3.0",
-    "mocha": "^2.5.3",
     "progress": "^2.0.0"
   },
   "dependencies": {
+    "mocha": "^2.5.3",
+    "chai": "^3.5.0",
+    "chai-as-promised": "^5.3.0",
     "bluebird": "^3.5.0",
     "commander": "^2.9.0",
     "crypto": "0.0.3",
