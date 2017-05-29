@@ -2,12 +2,9 @@
 
 (function(){
   var logger               = require('./lib/debug-log');
-  var Sqlite3              = require('sqlite3').verbose();
   var Promise              = require('bluebird');
-  var _                    = require('lodash');
   var fs                   = require('fs');
   var expandHomeDir        = require('expand-home-dir');
-  var loadQuery            = require('./lib/load-query');
   var getVersion           = require('./lib/get-version');
   var loadFromModernOSX    = require('./lib/load-from-modern-osx');
   var loadFromMadridiOS    = require('./lib/load-from-madrid-ios');
@@ -56,7 +53,7 @@
               }
             }
             else {
-              reject("Couldn't open selected database")
+              reject("Couldn't open selected database");
             }
           }).then(messages => {
 
@@ -69,7 +66,7 @@
             db.close();
           });
 
-        }, function(reason) {
+        }, function(/* reason */) {
           reject("Couldn't open selected database");
         });
       }
@@ -81,8 +78,6 @@
     return promise;
   };
 
-
-
   module.exports = exporter.importData;
 
   if (!module.parent) {
@@ -92,6 +87,9 @@
     if (!path) {
       console.log('USAGE: forever-chat-imessage-export [path] [options]');
       return;
+    }
+    else if (path === 'system') {
+      path = "~/Library/Messages/chat.db";
     }
 
     let options = program
@@ -105,7 +103,7 @@
     if (options.limit) console.log(`limited to ${options.limit}`);
     if (options.sinceDate) console.log(`only getting entries since ${options.sinceDate}`);
 
-    exporter.importData(path, options).then(data => {
+    exporter.importData(expandHomeDir(path), options).then(data => {
       console.log(prettyoutput(data, {maxDepth: 5}));
     });
   }
