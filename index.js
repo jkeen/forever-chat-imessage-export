@@ -11,71 +11,61 @@
   var openDB               = require('./lib/open-db');
   var prettyoutput         = require('prettyoutput');
 
-  function fetchVersionSpecificResults(db) {
-    return getVersion(db).then(function(version) {
-      if (version <= 5) {
-        return loadFromMadridiOS(db, version, options);
-      }
-      else {
-        return loadFromModernOSX(db, version, options);
-      }
-    });
-  }
+  var exporter = {
+    importData: function(path, options) {
+      logger.setEnabled(!!options.debug);
 
-  var exporter = {};
-  exporter.importData = function(path, options) {
-    logger.setEnabled(!!options.debug);
+      var promise = new Promise((resolve, reject) => {
+        var dbPath = null;
 
-    var promise = new Promise((resolve, reject) => {
-      var dbPath = null;
+        try {
+          if (fs.lstatSync(path).isDirectory()) {
+            logger.log("Found directory, looking for /3d0d7e5fb2ce288813306e4d4636395e047a3d28");
+            dbPath = path + '/3d0d7e5fb2ce288813306e4d4636395e047a3d28';
+          }
+          else if (fs.lstatSync(path).isFile()){
+            dbPath = path;
+          }
+          else {
+            reject("Couldn't open selected database");
+          }
 
-      try {
-        if (fs.lstatSync(path).isDirectory()) {
-          logger.log("Found directory, looking for /3d0d7e5fb2ce288813306e4d4636395e047a3d28");
-          dbPath = path + '/3d0d7e5fb2ce288813306e4d4636395e047a3d28';
-        }
-        else if (fs.lstatSync(path).isFile()){
-          dbPath = path;
-        }
-        else {
-          reject("Couldn't open selected database");
-        }
-
-        openDB(dbPath).then(db => {
-          return getVersion(db).then(function(version) {
-            logger.log("Found database version " + version);
-            if (version && version > 0) {
-              if (version <= 5) {
-                return loadFromMadridiOS(db, version, options);
+          openDB(dbPath).then(db => {
+            return getVersion(db).then(function(version) {
+              logger.log("Found database version " + version);
+              if (version && version > 0) {
+                if (version <= 5) {
+                  return loadFromMadridiOS(db, version, options);
+                }
+                else {
+                  return loadFromModernOSX(db, version, options);
+                }
               }
               else {
-                return loadFromModernOSX(db, version, options);
+                reject("Couldn't open selected database");
               }
-            }
-            else {
-              reject("Couldn't open selected database");
-            }
-          }).then(messages => {
+            }).then(messages => {
 
-            let results = {
-              messages: messages,
-            };
+              let results = {
+                messages: messages,
+              };
 
-            resolve(results);
-          }).finally(() => {
-            db.close();
+              resolve(results);
+            }).finally(() => {
+              db.close();
+            });
+
+          }, function(/* reason */) {
+            reject("Couldn't open selected database");
           });
-
-        }, function(/* reason */) {
+        }
+        catch(e) {
           reject("Couldn't open selected database");
-        });
-      }
-      catch(e) {
-        reject("Couldn't open selected database");
-      }
-    });
+        }
+      });
 
-    return promise;
+      return promise;
+    }
   };
 
   module.exports = exporter.importData;
@@ -102,6 +92,8 @@
     if (options.debug) console.log('- debugging on');
     if (options.limit) console.log(`limited to ${options.limit}`);
     if (options.sinceDate) console.log(`only getting entries since ${options.sinceDate}`);
+
+    options.showProgress = true; // don't do this for when using this not on the command line
 
     exporter.importData(expandHomeDir(path), options).then(data => {
       console.log(prettyoutput(data, {maxDepth: 5}));
