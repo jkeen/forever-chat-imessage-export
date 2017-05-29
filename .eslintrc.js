@@ -26,9 +26,13 @@ module.exports = {
       "always"
     ],
     "mocha/no-exclusive-tests": "error"
-
   },
   "plugins": [
     "mocha"
-  ]
+  ],
+  "globals": {
+    "before": true,
+    "describe": true,
+    "it": true
+  }
 };
