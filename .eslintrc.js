@@ -24,6 +24,11 @@ module.exports = {
     "semi": [
       "error",
       "always"
-    ]
-  }
+    ],
+    "mocha/no-exclusive-tests": "error"
+
+  },
+  "plugins": [
+    "mocha"
+  ]
 };

@@ -9,8 +9,6 @@ var Promise = require('bluebird');
 
 chai.use(chaiAsPromised);
 
-var _this = this;
-//
 describe("basics", function() {
   it('should throw an error when called without a path', function() {
     return importer().then(function() {}, function(reason) {
@@ -46,7 +44,6 @@ describe("basics", function() {
         if (Date.parse(datum.date) >= Date.parse("2015-11-16")) {
           successes.push(datum);
         }
-
       });
 
       expect(failures.length).to.equal(0);

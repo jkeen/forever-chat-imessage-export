@@ -10,7 +10,7 @@
   var loadFromMadridiOS    = require('./lib/load-from-madrid-ios');
   var openDB               = require('./lib/open-db');
   var prettyoutput         = require('prettyoutput');
-  var {validate}           = require('forever-chat-format');
+  var { prepare }          = require('forever-chat-format');
 
   var exporter = {
     importData: function(path, options) {
@@ -47,12 +47,7 @@
                 reject("Couldn't open selected database");
               }
             }).then(messages => {
-
-              let results = {
-                messages: messages,
-                validations: validate(messages)
-              };
-
+              let results = prepare(messages);
               resolve(results);
             }).finally(() => {
               db.close();
