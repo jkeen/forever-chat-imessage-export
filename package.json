@@ -1,6 +1,6 @@
 {
   "name": "forever-chat-imessage-export",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Exports iMessage chat history into a universal chat format",
   "main": "index.js",
   "scripts": {
