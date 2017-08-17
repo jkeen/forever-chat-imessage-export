@@ -36,13 +36,38 @@ SELECT
       WHEN 1 THEN "Sent"
       ELSE is_from_me
   END AS type,
-
+  m.is_audio_message,
   text,
+
+CASE m.associated_message_type
+	WHEN 1000 THEN "sticker"
+	WHEN 2000 THEN "loved"
+	WHEN 2001 THEN "liked"
+	WHEN 2002 THEN "disliked"
+	WHEN 2003 THEN "laughed"
+	WHEN 2004 THEN "emphasised"
+	WHEN 2005 THEN "questioned"
+
+	WHEN 3000 THEN "removed loved"
+	WHEN 3001 THEN "removed liked"
+	WHEN 3002 THEN "removed disliked"
+	WHEN 3003 THEN "removed laughed"
+	WHEN 3004 THEN "removed emphasised"
+	WHEN 3005 THEN "removed questioned"
+
+	ELSE m.associated_message_type
+END AS reaction_type,
+m.associated_message_guid,
 
   CASE date_read
     WHEN 0 THEN null
     ELSE strftime("%Y-%m-%dT%H:%M:%S", DATETIME(date_read +978307200, "unixepoch"))
   END AS formatted_date_read,
+
+  CASE date_played
+    WHEN 0 THEN null
+    ELSE strftime("%Y-%m-%dT%H:%M:%S", DATETIME(date_played +978307200, "unixepoch"))
+  END AS formatted_date_played,
 
   CASE date_delivered
     WHEN 0 THEN null
