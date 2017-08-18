@@ -1,4 +1,4 @@
-var mocha = require('mocha');
+require('mocha');
 var chai = require('chai');
 var chaiAsPromised = require("chai-as-promised");
 var expect = chai.expect;
@@ -6,6 +6,7 @@ var _ = require('lodash');
 var importer = require('../index');
 var expandHomeDir = require('expand-home-dir');
 var Promise = require('bluebird');
+var prettyoutput = require('prettyoutput');
 
 chai.use(chaiAsPromised);
 
@@ -32,11 +33,10 @@ describe("basics", function() {
 
   it('should only return records after a date when provided with that date', function() {
     return importer(expandHomeDir("test/dbs/8010.db"), {
-      sinceDate: "2015-11-16"
+      sinceDate: "2015-11-16",
     }).then(function(data) {
       var failures = [];
       var successes = [];
-
       _.each(data.messages, function(datum) {
         if (Date.parse(datum.date) < Date.parse("2015-11-16")) {
           failures.push(datum);
@@ -47,7 +47,7 @@ describe("basics", function() {
       });
 
       expect(failures.length).to.equal(0);
-      expect(successes.length).to.equal(data.length);
+      expect(successes.length).to.equal(data.messages.length);
     });
   });
 });
@@ -65,6 +65,7 @@ let testPaths = [
 
 Promise.each(testPaths, (path) => {
   let promise = importer(expandHomeDir(path[0]));
+
   runTests(promise, path[1]);
 
   return promise;

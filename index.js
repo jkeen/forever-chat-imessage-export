@@ -105,6 +105,18 @@
 
     exporter.importData(expandHomeDir(filePath), options).then(data => {
       if (options.save) {
+      if (options.test) {
+        if (options.save) {
+          bfj.write(`${path.join(__dirname, "validations.json").toString()}`, data.validations, {space: 4})
+            .then(() => {
+              console.log('donnnne');
+            })
+            .catch((e) => {
+              console.log(e);
+            });
+        }
+      }
+      else if (options.save) {
         let filePath = path.join(__dirname, "data.json").toString();
         bfj.write(filePath, data, {space: 4})
           .then(() => {
@@ -113,9 +125,6 @@
           .catch((e) => {
             console.log(e);
           });
-      }
-      else if (options.test) {
-        console.log(prettyoutput(data.validations, {maxDepth: 7}));
       }
       else {
         console.log(prettyoutput(data, {maxDepth: 7}));
