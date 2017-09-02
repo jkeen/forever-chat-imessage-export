@@ -13,7 +13,7 @@ SELECT
 
   id AS address,
 
-  (SELECT c.account_login FROM chat as c WHERE c.rowid = (SELECT chat_id FROM chat_message_join WHERE chat_message_join.message_id = m.rowid)) as account_login,
+  (SELECT c.account_login FROM chat as c WHERE c.rowid = (SELECT chat_id FROM chat_message_join WHERE chat_message_join.message_id = m.rowid)) as chat_account_login,
 
   (SELECT GROUP_CONCAT(id, "|*--*|") FROM handle as h2
     INNER JOIN chat_message_join AS cmj2 ON h2.rowid = chj2.handle_id
@@ -26,9 +26,9 @@ SELECT
 
   CASE is_from_me
     WHEN 1 THEN
-      coalesce(last_addressed_handle, account_login)
+      coalesce(last_addressed_handle, (SELECT c.account_login FROM chat as c WHERE c.rowid = (SELECT chat_id FROM chat_message_join WHERE chat_message_join.message_id = m.rowid)))
     ELSE
-      coalesce(last_addressed_handle, account_login)
+      coalesce(last_addressed_handle, (SELECT c.account_login FROM chat as c WHERE c.rowid = (SELECT chat_id FROM chat_message_join WHERE chat_message_join.message_id = m.rowid)))
   END AS me,
 
   CASE is_from_me

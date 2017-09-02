@@ -41,7 +41,7 @@ else -1 end as 'is_from_me',
 
 strftime("%Y-%m-%dT%H:%M:%S", DATETIME(m.date +978307200, "unixepoch")) AS formatted_date,
 
-m.madrid_account as 'me',
+m.madrid_account as me,
 
   CASE m.madrid_date_read
     WHEN 0 THEN null
