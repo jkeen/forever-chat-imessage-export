@@ -1,5 +1,5 @@
 SELECT
-  m.rowid as message_id,
+  m.rowid as msg_id,
   m.guid as guid,
   (SELECT chat_id FROM chat_message_join WHERE chat_message_join.message_id = m.rowid) as message_group,
 

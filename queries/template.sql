@@ -1,5 +1,5 @@
 SELECT
-  m.rowid as message_id,
+  m.rowid as msg_id,
 
   NULL as message_group,
 

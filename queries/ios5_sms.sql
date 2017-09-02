@@ -1,5 +1,5 @@
 select
-m.ROWID as message_id,
+m.ROWID as msg_id,
 m.group_id as message_group,
 case mg.type
 when 1 then 'Group'
@@ -46,4 +46,3 @@ LEFT OUTER JOIN msg_group as mg on m.group_id = mg.rowid
 LEFT OUTER JOIN msg_pieces as mp on m.rowid = mp.message_id
 
 where is_madrid=0
-group by message_group, participants, text, chat_type

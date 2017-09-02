@@ -8,7 +8,7 @@
 
 
 SELECT
-m.ROWID as message_id,
+m.ROWID as msg_id,
 
 (CASE WHEN m.madrid_roomname is null then
 	replace(printf('%s|*--*|%s', m.madrid_handle, m.madrid_account), '\', '|*--*|')
