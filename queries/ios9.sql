@@ -37,7 +37,7 @@ SELECT
       ELSE is_from_me
   END AS type,
 
-  text,
+  text as message_text,
 
   CASE date_read
     WHEN 0 THEN null

@@ -35,7 +35,7 @@ case m.flags
 
 m.subject as subject,
 m.flags as raw_type,
-m.text as text,
+m.text as message_text,
 mp.content_loc as attachment,
 cast(mp.data as text) as attachment_data,
 mp.content_type as attachment_mime_type,

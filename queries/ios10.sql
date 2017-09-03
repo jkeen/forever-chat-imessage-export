@@ -37,7 +37,7 @@ SELECT
       ELSE is_from_me
   END AS type,
   m.is_audio_message,
-  text,
+  text as message_text,
 
 CASE m.associated_message_type
 	WHEN 1000 THEN "sticker"

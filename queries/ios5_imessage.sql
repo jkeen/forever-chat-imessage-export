@@ -64,7 +64,7 @@ else 'Unknown' end as type,
 
 'imessage' as service,
 m.flags as raw_type,
-m.text as text,
+m.text as message_text,
 cast(m.madrid_attachmentInfo as text) as _attachment_info
 
 FROM message as m
