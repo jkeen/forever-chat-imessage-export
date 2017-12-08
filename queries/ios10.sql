@@ -22,7 +22,7 @@ SELECT
 
   is_from_me,
 
-  strftime("%Y-%m-%dT%H:%M:%S", DATETIME(date +978307200, "unixepoch")) AS formatted_date,
+  strftime("%Y-%m-%dT%H:%M:%S", DATETIME(substr(date,1,9)+978307200, "unixepoch")) AS formatted_date,
 
   CASE is_from_me
     WHEN 1 THEN
@@ -61,17 +61,17 @@ m.associated_message_guid,
 
   CASE date_read
     WHEN 0 THEN null
-    ELSE strftime("%Y-%m-%dT%H:%M:%S", DATETIME(date_read +978307200, "unixepoch"))
+    ELSE strftime("%Y-%m-%dT%H:%M:%S", DATETIME(substr(date_read,1,9)+978307200, "unixepoch"))
   END AS formatted_date_read,
 
   CASE date_played
     WHEN 0 THEN null
-    ELSE strftime("%Y-%m-%dT%H:%M:%S", DATETIME(date_played +978307200, "unixepoch"))
+    ELSE strftime("%Y-%m-%dT%H:%M:%S", DATETIME(substr(date_played,1,9)+978307200, "unixepoch"))
   END AS formatted_date_played,
 
   CASE date_delivered
     WHEN 0 THEN null
-    ELSE strftime("%Y-%m-%dT%H:%M:%S", DATETIME(date_delivered +978307200, "unixepoch"))
+    ELSE strftime("%Y-%m-%dT%H:%M:%S", DATETIME(substr(date_delivered,1,9)+978307200, "unixepoch"))
   END AS formatted_date_delivered,
 
   CASE cache_has_attachments
