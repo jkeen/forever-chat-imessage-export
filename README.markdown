@@ -1,4 +1,9 @@
 ##Forever Chat iMessage Export
+[![Travis build status](http://img.shields.io/travis/jkeen/forever-chat-imessage-export.svg?style=flat)](https://travis-ci.org/jkeen/forever-chat-imessage-export)
+[![Code Climate](https://codeclimate.com/github/jkeen/forever-chat-imessage-export/badges/gpa.svg)](https://codeclimate.com/github/jkeen/forever-chat-imessage-export)
+[![Test Coverage](https://codeclimate.com/github/jkeen/forever-chat-imessage-export/badges/coverage.svg)](https://codeclimate.com/github/jkeen/forever-chat-imessage-export)
+[![Dependency Status](https://david-dm.org/jkeen/forever-chat-imessage-export.svg)](https://david-dm.org/jkeen/forever-chat-imessage-export)
+[![devDependency Status](https://david-dm.org/jkeen/forever-chat-imessage-export/dev-status.svg)](https://david-dm.org/jkeen/forever-chat-imessage-export#info=devDependencies)
 
 ##What
 

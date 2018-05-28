@@ -1,12 +1,12 @@
 require('mocha');
 var chai = require('chai');
-var chaiAsPromised = require("chai-as-promised");
+var chaiAsPromised = require('chai-as-promised');
 var expect = chai.expect;
 var _ = require('lodash');
 var importer = require('../index');
 var expandHomeDir = require('expand-home-dir');
 var Promise = require('bluebird');
-var prettyoutput = require('prettyoutput');
+// var prettyoutput = require('prettyoutput');
 
 chai.use(chaiAsPromised);
 

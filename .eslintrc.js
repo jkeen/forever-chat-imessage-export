@@ -32,6 +32,9 @@ module.exports = {
   ],
   "globals": {
     "before": true,
+    "beforeEach": true,
+    "afterEach": true,
+    "spy": true,
     "describe": true,
     "it": true
   }

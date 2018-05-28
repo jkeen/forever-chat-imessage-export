@@ -1,24 +1,56 @@
 {
   "name": "forever-chat-imessage-export",
-  "version": "0.1.1",
+  "version": "0.0.1",
   "description": "Exports iMessage chat history into a universal chat format",
-  "main": "index.js",
+  "main": "dist/forever-chat-imessage-export.js",
   "scripts": {
-    "test": "mocha --reporter spec --timeout 90000"
+    "test": "gulp",
+    "lint": "gulp lint",
+    "test-browser": "gulp test-browser",
+    "watch": "gulp watch",
+    "build": "gulp build",
+    "coverage": "gulp coverage"
   },
-  "keywords": [
-    "imessage",
-    "ichat",
-    "export"
-  ],
-  "author": "Jeff Keen",
-  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jkeen/forever-chat-imessage-export.git"
+  },
+  "keywords": [],
+  "author": "Jeff Keen <jeff@keen.me>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jkeen/forever-chat-imessage-export/issues"
+  },
+  "homepage": "https://github.com/jkeen/forever-chat-imessage-export",
   "devDependencies": {
-    "eslint": "^3.19.0",
-    "eslint-config-airbnb-base": "^11.2.0",
-    "eslint-plugin-import": "^2.3.0",
-    "eslint-plugin-mocha": "^4.9.0",
-    "progress": "^2.0.0"
+    "babel-core": "6.14.0",
+    "babel-loader": "6.2.5",
+    "babel-polyfill": "6.13.0",
+    "babel-preset-latest": "6.14.0",
+    "babel-register": "6.14.0",
+    "chai": "3.5.0",
+    "del": "2.2.2",
+    "eslint-plugin-mocha": "^5.0.0",
+    "expand-home-dir": "0.0.2",
+    "glob": "7.0.6",
+    "gulp": "3.9.1",
+    "gulp-eslint": "3.0.1",
+    "gulp-filter": "4.0.0",
+    "gulp-istanbul": "1.1.1",
+    "gulp-livereload": "3.8.1",
+    "gulp-load-plugins": "1.2.4",
+    "gulp-mocha": "3.0.1",
+    "gulp-plumber": "1.1.0",
+    "gulp-rename": "1.2.2",
+    "gulp-sourcemaps": "1.6.0",
+    "gulp-uglify": "2.0.0",
+    "isparta": "4.0.0",
+    "json-loader": "0.5.4",
+    "mocha": "3.0.2",
+    "sinon": "1.17.5",
+    "sinon-chai": "2.8.0",
+    "webpack": "1.13.2",
+    "webpack-stream": "3.2.0"
   },
   "dependencies": {
     "bfj": "^4.1.1",
@@ -27,17 +59,16 @@
     "chai-as-promised": "^5.3.0",
     "commander": "^2.9.0",
     "crypto": "0.0.3",
-    "expand-home-dir": "0.0.2",
     "forever-chat-format": "^1.2.0",
     "fs": "0.0.1-security",
     "lodash": "^4.12.0",
-    "mocha": "^2.5.3",
     "phone": "^1.0.9",
     "prettyoutput": "^1.1.1",
     "sqlite3": "^3.1.1",
     "ts-progress": "^0.1.3"
   },
-  "bin": {
-    "forever-chat-imessage": "./index.js"
+  "babelBoilerplateOptions": {
+    "entryFileName": "forever-chat-imessage-export.js",
+    "mainVarName": "foreverChatImessageExport"
   }
 }
