@@ -1,5 +1,5 @@
 var Sqlite3 = require('sqlite3');
-import Promise from 'bluebird';
+var Promise = require('bluebird');
 
 export default function openDB(path) {
   return new Promise(function(resolve, reject) {

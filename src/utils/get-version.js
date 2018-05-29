@@ -1,4 +1,4 @@
-import Promise from "bluebird";
+var Promise = require('bluebird');
 
 function getClientVersion(db) {
   var promise = new Promise(function(resolve) {

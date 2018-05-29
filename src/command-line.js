@@ -1,8 +1,9 @@
-import path from 'path';
-import importData from 'import';
-import prettyoutput from 'prettyoutput';
-import expandHomeDir from 'expand-home-dir';
+var path = require('path');
+var prettyoutput = require('prettyoutput');
+var expandHomeDir = require('expand-home-dir');
 var bfj = require('bfj');
+
+import importData from 'import';
 
 export default function commandLine() {
   const program = require('commander');

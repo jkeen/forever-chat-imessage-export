@@ -1,7 +1,8 @@
-var fs   = require('fs');
-var path = require('path');
-var _    = require('lodash');
-import logger from 'debug-log';
+var fs     = require('fs');
+var path   = require('path');
+var _      = require('lodash');
+var logger = require('debug-log');
+
 
 export function addQueryOptions(query, options) {
   if (!options) {
