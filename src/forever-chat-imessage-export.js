@@ -1,5 +1,5 @@
-import commandLine from './command-line';
-import exporter from './import';
+var commandLine = require('./command-line');
+var exporter    = require('./import');
 
 let result;
 if (!module.parent) {
@@ -9,4 +9,4 @@ else {
   result = exporter;
 }
 
-export default result;
+module.exports = result;

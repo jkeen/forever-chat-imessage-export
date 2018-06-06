@@ -57,4 +57,4 @@ function importData (filePath, options) {
   return promise;
 }
 
-export default importData;
+module.exports = importData;

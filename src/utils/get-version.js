@@ -50,9 +50,9 @@ function getOSVersionForClientVersion(version) {
   return -1;
 }
 
-export default function(db) {
+module.exports = function(db) {
   return getClientVersion(db).then(function(clientVersionString) {
     var version = getOSVersionForClientVersion(clientVersionString);
     return version;
   });
-}
+};

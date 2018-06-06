@@ -4,7 +4,7 @@ var _      = require('lodash');
 var logger = require('debug-log');
 
 
-export function addQueryOptions(query, options) {
+function addQueryOptions(query, options) {
   if (!options) {
     options = {};
   }
@@ -45,7 +45,7 @@ export function addQueryOptions(query, options) {
   return query + additions;
 }
 
-export default function getQuery(queryFile, options) {
+module.exports = function getQuery(queryFile, options) {
   if (queryFile) {
     logger.log('loading query file: ' + queryFile);
 
@@ -58,4 +58,4 @@ export default function getQuery(queryFile, options) {
   else {
     return false;
   }
-}
+};
