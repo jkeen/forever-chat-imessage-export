@@ -1,9 +1,24 @@
-var Sqlite3 = require('sqlite3');
-var Promise = require('bluebird');
+const Sqlite3 = require('sqlite3');
+const Promise = require('bluebird');
+const fs      = require('fs');
+const logger  = require('./debug-log');
 
-module.exports = function openDB(path) {
+async function openDB(filePath) {
+  let dbPath;
+
   return new Promise(function(resolve, reject) {
-    return new Sqlite3.Database(path, Sqlite3.OPEN_READONLY, function(err) {
+    if (fs.lstatSync(filePath).isDirectory()) {
+      logger.log("Found directory, looking for /3d0d7e5fb2ce288813306e4d4636395e047a3d28");
+      dbPath = filePath + '/3d0d7e5fb2ce288813306e4d4636395e047a3d28';
+    }
+    else if (fs.lstatSync(filePath).isFile()){
+      dbPath = filePath;
+    }
+    else {
+      reject("Couldn't open selected database");
+    }
+
+    return new Sqlite3.Database(dbPath, Sqlite3.OPEN_READONLY, function(err) {
       if (err) {
         reject(this);
       }
@@ -12,4 +27,6 @@ module.exports = function openDB(path) {
       }
     });
   });
-};
+}
+
+module.exports = openDB;

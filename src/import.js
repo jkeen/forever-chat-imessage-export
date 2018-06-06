@@ -1,9 +1,9 @@
-import openDB from 'utils/open-db';
+const openDB = require('./utils/open-db');
 // import loadQuery from 'utils/load-query';
-import { prepare } from 'forever-chat-format';
-import logger from 'utils/debug-log';
-import getVersion from 'utils/get-version';
-var fs  = require('fs');
+const { prepare } = require('forever-chat-format');
+const logger = require('./utils/debug-log');
+const getVersion = require('./utils/get-version');
+const fs  = require('fs');
 
 function importData (filePath, options) {
   if (!options) options = {};
