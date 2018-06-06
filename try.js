@@ -1,13 +1,9 @@
-var importer       = require('./index');
+#!/usr/bin/env node
+
+var importer       = require('./src/import');
 var expandHomeDir  = require('expand-home-dir');
 
-// var importData     = importer(expandHomeDir("test/dbs/homer.db")).then(function(d) {
-//   console.log(JSON.stringify(d));
-// }).catch(function(e) {
-//   console.error(e);
-// });
-
-var importData     = importer(expandHomeDir("~/Library/Messages/chat.db"), {limit: 1000}).then(function(d) {
+var importData    = importer("~/Library/Messages/chat.db", {limit: 1000}).then(function(d) {
   console.log(JSON.stringify(d));
 }).catch(function(e) {
   console.error(e);

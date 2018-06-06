@@ -1,57 +1,42 @@
-const openDB = require('./utils/open-db');
-// import loadQuery from 'utils/load-query';
-const { prepare } = require('forever-chat-format');
-const logger = require('./utils/debug-log');
-const getVersion = require('./utils/get-version');
-const fs  = require('fs');
+const { prepare }            = require('forever-chat-format');
+const openDB                 = require('./utils/open-db');
+const getDBVersion           = require('./utils/get-version');
+const loadQueries            = require('./utils/load-queries');
+const expandHomeDir          = require('expand-home-dir');
 
-function importData (filePath, options) {
-  if (!options) options = {};
-  logger.setEnabled(!!options.debug);
+const FormatAddressStream    = require ('./streams/format-addresses');
+const FetchAttachmentsStream = require ('./streams/fetch-attachments');
+const IdentifyStream         = require('./streams/identify-people');
+const TransformStream        = require('./streams/convert-to-format');
+const ProgressStream         = require('./streams/progress-stream');
+const Promise                = require('bluebird');
 
-  var promise = new Promise((resolve, reject) => {
-    var dbPath = null;
+async function importData (filePath, options) {
+  let db               = await openDB(filePath);
+  let version          = await getDBVersion(db);
+  let queries          = await loadQueries(version, options);
 
-    try {
-      if (fs.lstatSync(filePath).isDirectory()) {
-        logger.log("Found directory, looking for /3d0d7e5fb2ce288813306e4d4636395e047a3d28");
-        dbPath = filePath + '/3d0d7e5fb2ce288813306e4d4636395e047a3d28';
-      }
-      else if (fs.lstatSync(filePath).isFile()){
-        dbPath = filePath;
-      }
-      else {
-        reject("Couldn't open selected database");
-      }
+  let promise = new Promise((resolve) => {
+    let fetchAttachments = new FetchAttachmentsStream(db, queries.attachmentsForId, expandHomeDir(filePath));
+    let formatAddresses  = new FormatAddressStream();
+    let transform        = new TransformStream();
+    let identify         = new IdentifyStream();
+    let progressStream   = new ProgressStream(db, queries.count, options);
 
-      openDB(dbPath).then(db => {
-        return getVersion(db).then(function(version) {
-          logger.log("Found database version " + version);
-          if (version && version > 0) {
-            if (version <= 5) {
-              // return loadFromMadridiOS(db, version, options);
-            }
-            else {
-              // return loadFromModernOSX(db, version, options);
-            }
-          }
-          else {
-            reject("Couldn't open selected database");
-          }
-        }).then(messages => {
-          let results = prepare(messages);
-          resolve(results);
-        }).finally(() => {
-          db.close();
-        });
+    let stream = progressStream
+      .pipe(fetchAttachments)
+      .pipe(formatAddresses)
+      .pipe(transform)
+      .pipe(identify);
 
-      }, function(/* reason */) {
-        reject("Couldn't open selected database");
-      });
+    if (options.extendStream) {
+      stream.pipe(options.extendStream);
     }
-    catch(e) {
-      reject("Couldn't open selected database");
-    }
+      // .pipe(write);
+
+    db.each(queries.messages, (error, row) => progressStream.write(row));
+
+    stream.on('done', () => resolve())
   });
 
   return promise;

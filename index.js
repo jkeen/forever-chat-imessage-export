@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
-(function(){
-  module.exports = require('./src/import').importData;
+const importer = require('./index');
 
-  if (!module.parent) {
-    require('./src/command-line')();
-  }
-})();
+
+module.exports = importer;
+
+if (!module.parent) {
+  require('./src/command-line')();
+}
