@@ -49,7 +49,9 @@ SELECT
     ELSE strftime("%Y-%m-%dT%H:%M:%S", DATETIME(substr(date_delivered,1,9)+978307200, "unixepoch"))
   END AS formatted_date_delivered,
 
-  m.service
+  m.service,
+  (SELECT count(*) FROM message_attachment_join AS maj LEFT JOIN attachment ON m.rowid = maj.attachment_id WHERE maj.message_id = m.rowid) as attachment_count
+
 
 FROM message AS m
 LEFT JOIN handle AS h ON h.rowid = m.handle_id

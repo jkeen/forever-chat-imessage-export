@@ -98,7 +98,8 @@ class ConvertRow {
       message_text:     this.row.message_text,
       message_segments: this.buildContentSegments(),
       attachments:      this.row.attachments,
-      _associated_message_guid: this.row.associated_message_guid
+      _associated_message_guid: this.row.associated_message_guid,
+      _msg_id: this.row.msg_id
     };
   }
 }

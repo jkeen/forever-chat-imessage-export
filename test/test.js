@@ -65,8 +65,6 @@ let testPaths = [
 
 Promise.each(testPaths, (path) => {
   let promise = importer(expandHomeDir(path[0]));
-
   runTests(promise, path[1]);
-
   return promise;
 });

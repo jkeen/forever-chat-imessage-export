@@ -1,10 +1,13 @@
-const Sqlite3 = require('sqlite3');
-const Promise = require('bluebird');
-const fs      = require('fs');
-const logger  = require('./debug-log');
+const Sqlite3       = require('sqlite3');
+const Promise       = require('bluebird');
+const fs            = require('fs');
+const logger        = require('./debug-log');
+const expandHomeDir = require('expand-home-dir');
 
 async function openDB(filePath) {
   let dbPath;
+
+  filePath = expandHomeDir(filePath);
 
   return new Promise(function(resolve, reject) {
     if (fs.lstatSync(filePath).isDirectory()) {

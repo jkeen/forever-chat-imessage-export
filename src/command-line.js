@@ -33,18 +33,19 @@ module.exports = async function commandLine() {
 
   options.showProgress = true; // don't do this for when using this not on the command line
 
-  var path           = require("path");
-  var prettyoutput   = require("prettyoutput");
-  var expandHomeDir  = require("expand-home-dir");
-  const openDB       = require('./utils/open-db');
-  const getDBVersion = require('./utils/get-version');
-  const loadQueries  = require('./utils/load-queries');
-  const { Writable } = require('stream');
+  var path            = require("path");
+  var prettyoutput    = require("prettyoutput");
+  const openDB        = require('./utils/open-db');
+  const getDBVersion  = require('./utils/get-version');
+  const loadQueries   = require('./utils/load-queries');
+  const expandHomeDir = require('expand-home-dir');
+  const { Writable }  = require('stream');
 
-  const FormatAddressStream    = require ('./transforms/format-addresses');
-  const FetchAttachmentsStream = require ('./transforms/fetch-attachments');
-  const IdentifyStream         = require('./transforms/identify-people');
-  const TransformStream        = require('./transforms/convert-to-format');
+  const FormatAddressStream    = require ('./streams/format-addresses');
+  const FetchAttachmentsStream = require ('./streams/fetch-attachments');
+  const IdentifyStream         = require('./streams/identify-people');
+  const TransformStream        = require('./streams/convert-to-format');
+  const ProgressStream         = require('./streams/progress-stream');
 
   class WriteStream extends Writable {
     constructor(options) {
@@ -69,25 +70,23 @@ module.exports = async function commandLine() {
     }
   }
 
-  let db               = await openDB(expandHomeDir(filePath));
+  let db               = await openDB(filePath);
   let version          = await getDBVersion(db);
   let queries          = await loadQueries(version, options);
 
-  let fetchAttachments = new FetchAttachmentsStream(db, queries[0].attachmentsForId);
+  let fetchAttachments = new FetchAttachmentsStream(db, queries.attachmentsForId, expandHomeDir(filePath));
   let formatAddresses  = new FormatAddressStream();
   let transform        = new TransformStream();
   let identify         = new IdentifyStream();
+  let progressStream   = new ProgressStream(db, queries.count, options);
   let write            = new WriteStream({compact: options.compact});
 
-  fetchAttachments
+  progressStream
+    .pipe(fetchAttachments)
     .pipe(formatAddresses)
     .pipe(transform)
     .pipe(identify)
     .pipe(write);
 
-  let messagesQuery = queries[0].messages;
-
-  db.each(messagesQuery, (error, row) => {
-    fetchAttachments.write(row);
-  });
+  db.each(queries.messages, (error, row) => fetchAttachments.write(row));
 };

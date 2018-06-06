@@ -23,16 +23,24 @@ function addAttachmentQueryOptions(query, options) {
   logger.log(`query options: ${additions}`);
   logger.log(`query: ${query + additions}`);
 
-  return query + additions + " ORDER BY maj.ROWID";
+  return query + additions + " ORDER BY message_attachments.ROWID";
 }
 
-function addMessageQueryOptions(query, options) {
-  if (!options) {
-    options = {};
-  }
-
+function addQueryOrdering(query, options = {}) {
   options = _.assign({order: ['date DESC']}, options);
 
+  let additions = "";
+
+  additions += ' ORDER BY ' + options.order.join(", ");
+
+  if (options.limit) {
+    additions = additions + " LIMIT " + options.limit;
+  }
+
+  return query + additions;
+}
+
+function addQueryConditions(query, options = {}) {
   let additions = "";
 
   if (options.sinceDate) {
@@ -55,12 +63,6 @@ function addMessageQueryOptions(query, options) {
     additions = additions + " GROUP BY " + options.group;
   }
 
-  additions += ' ORDER BY ' + options.order.join(", ");
-
-  if (options.limit) {
-    additions = additions + " LIMIT " + options.limit;
-  }
-
   logger.log(`query options: ${additions}`);
   logger.log(`query: ${query + additions}`);
 
@@ -71,44 +73,33 @@ module.exports = function(version, options) {
   let querySet;
 
   if (version <= 5) {
-    querySet = [
-      {
-        messages: "../queries/v5/imessage/messages.sql",
-        attachments: "../queries/v5/imessage/attachments.sql"
-      },
-      {
-        messages: "../queries/v5/sms/messages.sql",
-        attachments: "../queries/v5/sms/attachments.sql"
-      }
-    ];
+    let smsQuery      = addQueryConditions(loadQuery("../queries/v5/sms/messages.sql"), options, version);
+    let messagesQuery = addQueryConditions(loadQuery("../queries/v5/imessage/messages.sql"), options, version);
+    let unionedQuery  = addQueryOrdering(`${messagesQuery} UNION ${smsQuery}`, options);
+
+    querySet = {
+      messages: unionedQuery,
+      attachments: loadQuery("../queries/v5/attachments.sql")
+    };
   }
   else if (version >= 10) {
-    querySet = [
-      {
-        messages: "../queries/v10/messages.sql",
-        attachments: "../queries/v10/attachments.sql"
-      },
-    ];
+    querySet = {
+      messages: addQueryConditions(loadQuery("../queries/v10/messages.sql"), options, version),
+      attachments: loadQuery("../queries/v10/attachments.sql")
+    };
   }
   else {
-    querySet = [
-      {
-        messages: "../queries/v9/messages.sql",
-        attachments: "../queries/v9/attachments.sql"
-      },
-    ];
+    querySet = {
+      messages: addQueryConditions(loadQuery("../queries/v9/messages.sql"), options, version),
+      attachments: loadQuery("../queries/v9/attachments.sql")
+    };
   }
 
-  return querySet.map(query => {
-    let result = {
-      messages:    addMessageQueryOptions(loadQuery(query.messages), options),
-      attachments: loadQuery(query.attachments)
-    };
+  querySet.count = "SELECT count(*) as count FROM message ";
 
-    result.attachmentsForId = (id) => {
-      return addAttachmentQueryOptions(result.attachments, {ids: [id]});
-    };
+  querySet.attachmentsForId = (id) => {
+    return addAttachmentQueryOptions(querySet.attachments, {ids: [id]}, version);
+  };
 
-    return result;
-  });
+  return querySet;
 };

@@ -1,9 +1,11 @@
-select
+SELECT
 m.ROWID as msg_id,
+
 m.group_id as message_group,
-case mg.type
-when 1 then 'Group'
-else 'Individual' end as chat_type,
+
+CASE mg.type
+WHEN 1 THEN 'Group'
+ELSE 'Individual' END as chat_type,
 
 m.date as date,
 coalesce(m.address, m.madrid_handle) as address,
@@ -36,13 +38,11 @@ case m.flags
 m.subject as subject,
 m.flags as raw_type,
 m.text as message_text,
-mp.content_loc as attachment,
-cast(mp.data as text) as attachment_data,
-mp.content_type as attachment_mime_type,
-mp.content_id as attachment_id
+(SELECT count(*) FROM msg_pieces AS mp where m.rowid = mp.message_id) as attachment_count,
+cast(m.madrid_attachmentInfo as text) as _madrid_attachment_info,
+is_madrid
 
 from message as m
 LEFT OUTER JOIN msg_group as mg on m.group_id = mg.rowid
-LEFT OUTER JOIN msg_pieces as mp on m.rowid = mp.message_id
 
 where is_madrid=0
