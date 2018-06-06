@@ -53,6 +53,7 @@
     "webpack-stream": "3.2.0"
   },
   "dependencies": {
+    "address-book-export": "^0.0.6",
     "bfj": "^4.1.1",
     "bluebird": "^3.5.0",
     "chai": "^3.5.0",

@@ -23,7 +23,7 @@ function addAttachmentQueryOptions(query, options) {
   logger.log(`query options: ${additions}`);
   logger.log(`query: ${query + additions}`);
 
-  return query + additions;
+  return query + additions + " ORDER BY maj.ROWID";
 }
 
 function addMessageQueryOptions(query, options) {

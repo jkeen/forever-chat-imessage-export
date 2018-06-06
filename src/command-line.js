@@ -11,6 +11,7 @@ module.exports = async function commandLine() {
 
   let options = program
     .version("0.0.1")
+    .option("-c, --compact", "print out compactly")
     .option("-d, --debug", "Turn on debugging")
     .option("-l, --limit [value]", "Only return the last X records")
     .option("-i, --ids [value]", "Only return messages with ids")
@@ -38,118 +39,55 @@ module.exports = async function commandLine() {
   const openDB       = require('./utils/open-db');
   const getDBVersion = require('./utils/get-version');
   const loadQueries  = require('./utils/load-queries');
-  const { Readable, Transform, Writable } = require('stream');
-  const ConvertRow   = require('./convert-row');
-  const normalizePhone = require('phone');
+  const { Writable } = require('stream');
 
-  let db      = await openDB(expandHomeDir(filePath));
-  let version = await getDBVersion(db);
-  let queries = await loadQueries(version, options);
-
-  class TransformStream extends Transform {
-    constructor(options) {
-      super(Object.assign({}, options, { objectMode: true }));
-    }
-
-    _transform(row, encoding, callback) {
-      // EXPECTATIONS:
-      // - that row will have attachments already fetched and provided
-      // - that row will have attachments
-      // - that row's addresses and participants will have been formatted
-
-      let transformed = new ConvertRow(row, row.attachments);
-
-      callback(null, transformed);
-    }
-  }
-
-  class FetchAttachmentsStream extends Transform {
-    constructor(db, queryGeneratorFunc, options) {
-      super(Object.assign({}, options, { objectMode: true }));
-      this.db = db;
-      this.queryGeneratorFunc = queryGeneratorFunc;
-    }
-
-    _transform(row, encoding, callback) {
-      if (row.attachment_count > 0) {
-        let attachmentQuery = this.queryGeneratorFunc(row.msg_id);
-
-        console.log(attachmentQuery);
-
-        this.db.all(attachmentQuery, (error, rows) => {
-          row.attachments = rows;
-          callback(null, row);
-        });
-      }
-      else {
-        row.attachments = [];
-        callback(null, row);
-      }
-    }
-  }
-
-  class FormatAddressStream extends Transform {
-    constructor(options) {
-      super(Object.assign({}, options, { objectMode: true }));
-      this.addressCache = {};
-    }
-
-    formatAddress(value) {
-      let cachedValue = this.addressCache[value];
-      let formattedValue;
-
-      if (!cachedValue) {
-        if (!value || value === "E:") {
-          formattedValue = null;
-        }
-        else if (value.slice(0,2) === "E:") {
-          formattedValue = value.slice(2);
-        }
-        else {
-          var formattedPhone = normalizePhone(value);
-          if (formattedPhone && formattedPhone.length > 0) {
-            formattedValue = formattedPhone[0];
-          }
-          else {
-            formattedValue = value;
-          }
-        }
-        cachedValue[value] = formattedValue;
-      }
-      return cachedValue || value;
-    }
-
-    _transform(row, encoding, callback) {
-      row.address = this.formatAddress(row.address);
-      row.participants = row.participants.split('|*--*|').map(participant => this.formatAddress(participant));
-
-      callback(null, row);
-    }
-  }
+  const FormatAddressStream    = require ('./transforms/format-addresses');
+  const FetchAttachmentsStream = require ('./transforms/fetch-attachments');
+  const IdentifyStream         = require('./transforms/identify-people');
+  const TransformStream        = require('./transforms/convert-to-format');
 
   class WriteStream extends Writable {
     constructor(options) {
       super(Object.assign({}, options, { objectMode: true }));
+      this.options = options;
     }
 
     _write(object, encoding, callback) {
-      callback(null, process.stdout.write(prettyoutput(object)));
+      let simple = {
+        from: object.sender,
+        to: object.receiver.join(", "),
+        date: object.date,
+        text: object.message_text
+      };
+
+      if (this.options.compact) {
+        callback(null, process.stdout.write(prettyoutput(simple) + "\n\n"));
+      }
+      else {
+        callback(null, process.stdout.write(prettyoutput(object) + "\n\n"));
+      }
     }
   }
 
-  var fetch           = new FetchAttachmentsStream(db, queries[0].attachmentsForId);
-  var formatAddresses = new FormatAddressStream();
-  var transform       = new TransformStream();
-  var write           = new WriteStream();
+  let db               = await openDB(expandHomeDir(filePath));
+  let version          = await getDBVersion(db);
+  let queries          = await loadQueries(version, options);
 
-  fetch.pipe(formatAddresses).pipe(transform).pipe(write);
+  let fetchAttachments = new FetchAttachmentsStream(db, queries[0].attachmentsForId);
+  let formatAddresses  = new FormatAddressStream();
+  let transform        = new TransformStream();
+  let identify         = new IdentifyStream();
+  let write            = new WriteStream({compact: options.compact});
+
+  fetchAttachments
+    .pipe(formatAddresses)
+    .pipe(transform)
+    .pipe(identify)
+    .pipe(write);
 
   let messagesQuery = queries[0].messages;
 
   db.each(messagesQuery, (error, row) => {
-    console.log(row);
-    fetch.write(row);
+    fetchAttachments.write(row);
   });
-
-
 };
