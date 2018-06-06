@@ -4,8 +4,8 @@ const getDBVersion           = require('./utils/get-version');
 const loadQueries            = require('./utils/load-queries');
 const expandHomeDir          = require('expand-home-dir');
 
-const FormatAddressStream    = require ('./streams/format-addresses');
-const FetchAttachmentsStream = require ('./streams/fetch-attachments');
+const FormatAddressStream    = require('./streams/format-addresses');
+const FetchAttachmentsStream = require('./streams/fetch-attachments');
 const IdentifyStream         = require('./streams/identify-people');
 const TransformStream        = require('./streams/convert-to-format');
 const ProgressStream         = require('./streams/progress-stream');
@@ -34,7 +34,10 @@ async function importData (filePath, options) {
     }
       // .pipe(write);
 
-    db.each(queries.messages, (error, row) => progressStream.write(row));
+    db.each(queries.messages, (error, row) => progressStream.write(row),
+    function() {
+      stream.end();
+    });
 
     stream.on('done', () => resolve())
   });
