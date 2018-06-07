@@ -73,8 +73,8 @@ module.exports = function(version, options) {
   let querySet;
 
   if (version <= 5) {
-    let smsQuery      = addQueryConditions(loadQuery("../queries/v5/sms/messages.sql"), options, version);
-    let messagesQuery = addQueryConditions(loadQuery("../queries/v5/imessage/messages.sql"), options, version);
+    let smsQuery      = addQueryConditions(loadQuery("../queries/v5/sms/messages.sql"), options);
+    let messagesQuery = addQueryConditions(loadQuery("../queries/v5/imessage/messages.sql"), options);
     let unionedQuery  = addQueryOrdering(`${messagesQuery} UNION ${smsQuery}`, options);
 
     querySet = {
@@ -84,13 +84,13 @@ module.exports = function(version, options) {
   }
   else if (version >= 10) {
     querySet = {
-      messages: addQueryConditions(loadQuery("../queries/v10/messages.sql"), options, version),
+      messages: addQueryOrdering(addQueryConditions(loadQuery("../queries/v10/messages.sql"), options), options),
       attachments: loadQuery("../queries/v10/attachments.sql")
     };
   }
   else {
     querySet = {
-      messages: addQueryConditions(loadQuery("../queries/v9/messages.sql"), options, version),
+      messages: addQueryOrdering(addQueryConditions(loadQuery("../queries/v9/messages.sql"), options), options),
       attachments: loadQuery("../queries/v9/attachments.sql")
     };
   }
