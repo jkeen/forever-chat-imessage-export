@@ -1,6 +1,7 @@
 const program      = require("commander");
 const path         = require("path");
 const OutputStream = require('./streams/output-stream');
+const FileStream   = require('./streams/file-stream');
 const importData   = require('./import');
 
 async function commandLine() {
@@ -36,10 +37,14 @@ async function commandLine() {
 
   options.showProgress = true; // don't do this for when using this not on the command line
 
+  if (options.save) {
+    options.extendStream = new FileStream(options.write);
+  }
+  else {
+    options.extendStream = new OutputStream({compact: options.compact});
+  }
 
-  let output          = new OutputStream({compact: options.compact});
 
-  options.extendStream = output;
   await importData(filePath, options);
 }
 

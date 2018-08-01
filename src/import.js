@@ -11,35 +11,55 @@ const TransformStream        = require('./streams/convert-to-format');
 const ProgressStream         = require('./streams/progress-stream');
 const Promise                = require('bluebird');
 
+async function getRowCount(db, countQuery) {
+  this.rowCount = 0;
+  let promise = new Promise((resolve) => {
+    db.serialize(() => {
+      db.all(countQuery, (error, row) => {
+        resolve(row[0]['count']);
+      });
+    });
+  });
+
+  return promise;
+}
+
 async function importData (filePath, options) {
   let db               = await openDB(filePath);
   let version          = await getDBVersion(db);
   let queries          = await loadQueries(version, options);
+  let rowCount         = await getRowCount(db, queries.count);
+
+  let totalCount = (options.limit && rowCount ? Math.min(rowCount, options.limit) : rowCount);
 
   let promise = new Promise((resolve) => {
     let fetchAttachments = new FetchAttachmentsStream(db, queries.attachmentsForId, expandHomeDir(filePath));
     let formatAddresses  = new FormatAddressStream();
     let transform        = new TransformStream();
     let identify         = new IdentifyStream();
-    let progressStream   = new ProgressStream(db, queries.count, options);
+    let progressStream   = new ProgressStream(totalCount, options);
 
-    let stream = progressStream
-      .pipe(fetchAttachments)
+    let stream = fetchAttachments
       .pipe(formatAddresses)
       .pipe(transform)
-      .pipe(identify);
+      .pipe(identify)
+      .pipe(progressStream);
 
     if (options.extendStream) {
       stream.pipe(options.extendStream);
     }
-      // .pipe(write);
 
-    db.each(queries.messages, (error, row) => progressStream.write(row),
+    db.each(queries.messages, (error, row) => {
+      fetchAttachments.write(row);
+    },
     function() {
-      stream.end();
+      // when to end the stream? this is the end of the query
+      // stream.end();
     });
 
-    stream.on('done', () => resolve())
+    stream.on('finish', () => {
+      resolve();
+    });
   });
 
   return promise;

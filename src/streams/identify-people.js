@@ -11,32 +11,32 @@ class IdentifyStream extends Transform {
   }
 
   buildAddressIndex() {
+    let _this = this;
+
     return new Promise((resolve) => {
-      if (this.contactIndexBuilt) {
-        resolve(this.contactIndex);
+      if (_this.contactIndexBuilt) {
+        return resolve(_this.contactIndex);
       }
 
       return addressImport().then(contacts => {
         contacts.forEach(contact => {
-
           let messengers = contact.messengers.map(c => c.address);
           let emails     = contact.emails.map(c => c.address);
           let phones     = contact.phones.map(c => c.number).map(number => normalizePhone(number)[0]);
           let keys       = [...messengers, ...emails, ...phones];
           keys.forEach(key => {
-            this.contactIndex[key] = contact;
+            _this.contactIndex[key] = contact;
           });
         });
 
-        this.contactIndexBuilt = true;
-        resolve(this.contactIndex);
-      });
+        _this.contactIndexBuilt = true;
+        return resolve(_this.contactIndex);
+      })
     });
   }
 
   annotateWithName(lookupContact, address) {
     let contact = lookupContact[address];
-
     if (contact) {
       return `${contact.first_name} ${contact.last_name} <${address}>`;
     }
@@ -57,7 +57,8 @@ class IdentifyStream extends Transform {
           message.receiver =  this.annotateWithName(lookupContact, message.receiver);
         }
       }
-
+      callback(null, message);
+    }).catch(() => {
       callback(null, message);
     });
   }

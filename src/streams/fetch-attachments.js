@@ -41,8 +41,8 @@ class FetchAttachmentsStream extends Transform {
   processMadridAttachments(row, callback) {
     let attachmentInfo = row._madrid_attachment_info;
     // The first version of iMessage was called "madrid"
-    this.fetchMadridAttachmentsTable().then(attachments => {
-      if (attachmentInfo && attachmentInfo.length > 0) {
+    if (attachmentInfo && attachmentInfo.length > 0) {
+      this.fetchMadridAttachmentsTable().then(attachments => {
         var attachmentGuids = attachmentInfo.slice(attachmentInfo.indexOf("\x01+$") + 3, attachmentInfo.length - 2);
         // this might be multiple guids separated by weird special characters
         let guids = attachmentGuids.match(/\w{8}-\w{4}-\w{4}-\w{4}-\w{12}/g);
@@ -55,8 +55,11 @@ class FetchAttachmentsStream extends Transform {
           };
         });
         callback(null, row);
-      }
-    });
+      });
+    }
+    else {
+      callback(null, row);
+    }
   }
 
   processOldSMSAttachments(row, callback) {
