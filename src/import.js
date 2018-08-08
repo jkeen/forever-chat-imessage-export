@@ -2,27 +2,16 @@ const { prepare }            = require('forever-chat-format');
 const openDB                 = require('./utils/open-db');
 const getDBVersion           = require('./utils/get-version');
 const loadQueries            = require('./utils/load-queries');
+const getRowCount            = require('./utils/get-row-count');
 const expandHomeDir          = require('expand-home-dir');
-
 const FormatAddressStream    = require('./streams/format-addresses');
 const FetchAttachmentsStream = require('./streams/fetch-attachments');
 const IdentifyStream         = require('./streams/identify-people');
 const TransformStream        = require('./streams/convert-to-format');
 const ProgressStream         = require('./streams/progress-stream');
+const FileStream             = require('./streams/file-stream');
+const ReadDatabaseRowStream  = require('./streams/read-database-row');
 const Promise                = require('bluebird');
-
-async function getRowCount(db, countQuery) {
-  this.rowCount = 0;
-  let promise = new Promise((resolve) => {
-    db.serialize(() => {
-      db.all(countQuery, (error, row) => {
-        resolve(row[0]['count']);
-      });
-    });
-  });
-
-  return promise;
-}
 
 async function importData (filePath, options) {
   let db               = await openDB(filePath);
@@ -33,33 +22,55 @@ async function importData (filePath, options) {
   let totalCount = (options.limit && rowCount ? Math.min(rowCount, options.limit) : rowCount);
 
   let promise = new Promise((resolve) => {
-    let fetchAttachments = new FetchAttachmentsStream(db, queries.attachmentsForId, expandHomeDir(filePath));
-    let formatAddresses  = new FormatAddressStream();
-    let transform        = new TransformStream();
-    let identify         = new IdentifyStream();
-    let progressStream   = new ProgressStream(totalCount, options);
 
-    let stream = fetchAttachments
+    // These are transform streams
+    let readStream          = new ReadDatabaseRowStream(options);
+    let fetchAttachments    = new FetchAttachmentsStream(db, queries.attachmentsForId, expandHomeDir(filePath));
+    let formatAddresses     = new FormatAddressStream();
+    let transformIntoFormat = new TransformStream();
+    let identifyPeople      = new IdentifyStream();
+    let reportProgress      = new ProgressStream(totalCount, options);
+
+    let stream = readStream
+      .pipe(fetchAttachments)
       .pipe(formatAddresses)
-      .pipe(transform)
-      .pipe(identify)
-      .pipe(progressStream);
+      .pipe(transformIntoFormat)
+      .pipe(identifyPeople)
+      .pipe(reportProgress);
 
-    if (options.extendStream) {
+    if (options.outputStream) {
+      // This is where our output gets specified. File or command line
       stream.pipe(options.extendStream);
     }
 
+    if (options.writePath) {
+      let fileStream = new FileStream(options.writePath, totalCount);
+      stream.pipe(fileStream);
+
+      fileStream.on('end', function() {
+        console.log('ended?');
+        stream.end();
+      });
+    }
+
     db.each(queries.messages, (error, row) => {
-      fetchAttachments.write(row);
+      readStream.push(row);
     },
     function() {
       // when to end the stream? this is the end of the query
       // stream.end();
     });
 
+    readStream.on('finish', function() {
+      console.log('read done')
+    });
+
     stream.on('finish', () => {
+      console.log('done')
       resolve();
     });
+
+    return stream;
   });
 
   return promise;

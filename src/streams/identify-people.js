@@ -31,7 +31,7 @@ class IdentifyStream extends Transform {
 
         _this.contactIndexBuilt = true;
         return resolve(_this.contactIndex);
-      })
+      });
     });
   }
 
@@ -46,6 +46,8 @@ class IdentifyStream extends Transform {
   }
 
   _transform(message, encoding, callback) {
+    var called = false;
+
     this.buildAddressIndex().then((lookupContact) => {
       message.sender = this.annotateWithName(lookupContact, message.sender);
 
@@ -57,9 +59,16 @@ class IdentifyStream extends Transform {
           message.receiver =  this.annotateWithName(lookupContact, message.receiver);
         }
       }
-      callback(null, message);
-    }).catch(() => {
-      callback(null, message);
+      if (!called) {
+        called = true;
+        callback(null, message);
+      }
+    }).catch((e) => {
+      console.log(e);
+      if (!called) {
+        called = true;
+        callback(null, message);
+      }
     });
   }
 }

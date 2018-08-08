@@ -14,7 +14,6 @@ class TransformStream extends Transform {
     // - that row's addresses and participants will have been formatted
 
     let transform = new ConvertRow(row, row.attachments);
-
     callback(null, transform.process());
   }
 }
