@@ -8,14 +8,14 @@ class OutputStream extends Writable {
   }
 
   _write(object, encoding, callback) {
-    let simple = {
-      from: object.sender,
-      to: object.receiver.join(", "),
-      date: object.date,
-      text: object.message_text
-    };
-
     if (this.options.compact) {
+      let simple = {
+        from: object.sender,
+        to: object.receiver.join(", "),
+        date: object.date,
+        text: object.message_text
+      };
+
       callback(null, process.stdout.write(prettyoutput(simple) + "\n\n"));
     }
     else {

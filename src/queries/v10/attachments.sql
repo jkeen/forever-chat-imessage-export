@@ -1,5 +1,5 @@
 SELECT
-maj.message_id as msg_id,
+message_attachments.message_id as msg_id,
 a.filename as attachment_path,
 a.uti,
 a.mime_type as attachment_mime_type

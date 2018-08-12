@@ -40,7 +40,7 @@ async function importData (filePath, options) {
 
     if (options.outputStream) {
       // This is where our output gets specified. File or command line
-      stream.pipe(options.extendStream);
+      stream.pipe(options.outputStream);
     }
 
     if (options.writePath) {
