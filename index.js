@@ -2,7 +2,6 @@
 
 const importer = require('./index');
 
-
 module.exports = importer;
 
 if (!module.parent) {

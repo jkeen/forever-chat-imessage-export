@@ -1,4 +1,3 @@
-const { prepare }            = require('forever-chat-format');
 const openDB                 = require('./utils/open-db');
 const getDBVersion           = require('./utils/get-version');
 const loadQueries            = require('./utils/load-queries');
@@ -13,7 +12,7 @@ const FileStream             = require('./streams/file-stream');
 const ReadDatabaseRowStream  = require('./streams/read-database-row');
 const Promise                = require('bluebird');
 
-async function importData (filePath, options) {
+async function importData(filePath, options) {
   let db               = await openDB(filePath);
   let version          = await getDBVersion(db);
   let queries          = await loadQueries(version, options);
@@ -22,21 +21,22 @@ async function importData (filePath, options) {
   let totalCount = (options.limit && rowCount ? Math.min(rowCount, options.limit) : rowCount);
 
   let promise = new Promise((resolve) => {
-
     // These are transform streams
     let readStream          = new ReadDatabaseRowStream(options);
     let fetchAttachments    = new FetchAttachmentsStream(db, queries.attachmentsForId, expandHomeDir(filePath));
     let formatAddresses     = new FormatAddressStream();
     let transformIntoFormat = new TransformStream();
     let identifyPeople      = new IdentifyStream();
-    let reportProgress      = new ProgressStream(totalCount, options);
+    let progressStream      = new ProgressStream(totalCount, {showProgress: options.showProgress}, function onFinishHook() {
+      stream.end();
+    });
 
     let stream = readStream
       .pipe(fetchAttachments)
       .pipe(formatAddresses)
       .pipe(transformIntoFormat)
       .pipe(identifyPeople)
-      .pipe(reportProgress);
+      .pipe(progressStream);
 
     if (options.outputStream) {
       // This is where our output gets specified. File or command line
@@ -47,9 +47,20 @@ async function importData (filePath, options) {
       let fileStream = new FileStream(options.writePath, totalCount);
       stream.pipe(fileStream);
 
-      fileStream.on('end', function() {
-        console.log('ended?');
+      fileStream.on('finish', function() {
         stream.end();
+      });
+    }
+
+    if (!options.streaming) {
+      // If we've requested that this not be streaming
+      let data = [];
+      stream.on('data', function(item) {
+        data.push(item);
+      });
+
+      stream.on('finish', function() {
+        return resolve(data);
       });
     }
 
@@ -64,13 +75,11 @@ async function importData (filePath, options) {
     readStream.on('finish', function() {
       console.log('read done')
     });
-
+    //
     stream.on('finish', () => {
       console.log('done')
-      resolve();
+      // return resolve(stream);
     });
-
-    return stream;
   });
 
   return promise;

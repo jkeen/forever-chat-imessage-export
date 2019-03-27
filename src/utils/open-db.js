@@ -23,7 +23,7 @@ async function openDB(filePath) {
 
     return new Sqlite3.Database(dbPath, Sqlite3.OPEN_READONLY, function(err) {
       if (err) {
-        reject(this);
+        reject(`${err} Couldn't open selected database at ${dbPath}`);
       }
       else {
         resolve(this);

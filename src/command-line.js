@@ -43,6 +43,8 @@ async function commandLine() {
     options.outputStream = new OutputStream({compact: options.compact});
   }
 
+  options.streaming = true;
+  options.commandLine = true;
   await importData(filePath, options);
 }
 

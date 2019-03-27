@@ -1,10 +1,10 @@
 const { Writable } = require('stream');
 var fs = require('fs');  // file system
-const prettyoutput = require('prettyoutput');
 
 class FileStream extends Writable {
   constructor(filePath, totalCount, options) {
     super(Object.assign({}, options, { objectMode: true }));
+    
     this.options = options;
     this.totalCount = totalCount;
     this.count = 0;
@@ -16,7 +16,6 @@ class FileStream extends Writable {
     var item = JSON.stringify(object, null, '    ');
     this.count += 1;
     var _count = this.count;
-
 
     if (this.totalCount === 1) {
       item = `[${item}]`;
@@ -36,7 +35,6 @@ class FileStream extends Writable {
     var _this = this;
     this.wstream.write(item, 'utf8', function() {
       if (_count === _this.totalCount) {
-        console.log('hellooo');
         // _this.wstream.close();
         _this.end();
         callback(null);
