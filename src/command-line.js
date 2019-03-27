@@ -25,17 +25,6 @@ async function commandLine() {
     .option("-w, --save [value]", "write to file")
     .parse(process.argv);
 
-  if (options.debug)      console.log("- debugging on");
-  if (options.limit)      console.log(`limited to ${options.limit}`);
-  if (options.sinceDate)  console.log(`only getting entries since ${options.sinceDate}`);
-  if (options.search)     console.log(`only getting entries containing ${options.search}`);
-  if (options.ids)        console.log(`only getting message ids ${options.ids}`);
-  if (options.phone)      console.log(`only getting to/from ${options.phone}`);
-  if (options.test)       console.log(`only testing entires`);
-  if (options.save)       console.log(`writing to ${path.join(__dirname, "data.json").toString()}`);
-
-  options.showProgress = true; // don't do this for when using this not on the command line
-
   if (options.save) {
     options.writePath = path.join(__dirname, "data.json").toString();
   }

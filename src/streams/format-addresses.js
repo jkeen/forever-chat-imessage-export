@@ -10,6 +10,7 @@ class FormatAddressStream extends Transform {
   constructor(options) {
     super(Object.assign({}, options, { objectMode: true }));
     this.addressCache = {};
+    this.debug = options.debug;
   }
 
   formatAddress(value) {

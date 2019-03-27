@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const importer = require('./index');
+const importer = require('./src/import');
 
 module.exports = importer;
 

@@ -1,13 +1,18 @@
 var Promise = require('bluebird');
 
 function getClientVersion(db) {
-  var promise = new Promise(function(resolve) {
+  var promise = new Promise(function(resolve, reject) {
     db.serialize(function() {
       var clientVersion;
       db.each("SELECT value from _SqliteDatabaseProperties WHERE key = '_ClientVersion'", function(error, row) {
         clientVersion = row.value;
       }, function() { // FINISHED CALLBACK
-        resolve(clientVersion);
+        if (clientVersion) {
+          resolve(clientVersion);
+        }
+        else {
+          reject("Couldn't open selected database");
+        }
       });
     });
   });
@@ -50,9 +55,8 @@ function getOSVersionForClientVersion(version) {
   return -1;
 }
 
-module.exports = function(db) {
-  return getClientVersion(db).then(function(clientVersionString) {
-    var version = getOSVersionForClientVersion(clientVersionString);
-    return version;
-  });
+module.exports = async function(db) {
+  let clientVersionString = await getClientVersion(db);
+  var version = getOSVersionForClientVersion(clientVersionString);
+  return version;
 };

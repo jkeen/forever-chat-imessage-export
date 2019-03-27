@@ -5,6 +5,7 @@ const ConvertRow = require('../convert-row');
 class TransformStream extends Transform {
   constructor(options) {
     super(Object.assign({}, options, { objectMode: true }));
+    this.debug = options.debug;
   }
 
   _transform(row, encoding, callback) {

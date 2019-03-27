@@ -8,6 +8,7 @@ class IdentifyStream extends Transform {
     super(Object.assign({}, options, { objectMode: true }));
     this.contactIndex = {};
     this.contactIndexBuilt = false;
+    this.debug = options.debug;
   }
 
   buildAddressIndex() {

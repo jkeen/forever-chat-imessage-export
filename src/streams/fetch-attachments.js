@@ -5,8 +5,9 @@ const path    = require('path');
 // Adds an .attachments property on the row with the array of attachments and returns it
 
 class FetchAttachmentsStream extends Transform {
-  constructor(db, queryGeneratorFunc, dbPath, options) {
+  constructor(db, queryGeneratorFunc, dbPath, options = {}) {
     super(Object.assign({}, options, { objectMode: true }));
+    this.debug = options.debug;
     this.db = db;
     this.dbPath = dbPath;
     this.queryGeneratorFunc = queryGeneratorFunc;
@@ -39,8 +40,9 @@ class FetchAttachmentsStream extends Transform {
   }
 
   processMadridAttachments(row, callback) {
-    let attachmentInfo = row._madrid_attachment_info;
     // The first version of iMessage was called "madrid"
+    let attachmentInfo = row._madrid_attachment_info;
+
     if (attachmentInfo && attachmentInfo.length > 0) {
       this.fetchMadridAttachmentsTable().then(attachments => {
         var attachmentGuids = attachmentInfo.slice(attachmentInfo.indexOf("\x01+$") + 3, attachmentInfo.length - 2);

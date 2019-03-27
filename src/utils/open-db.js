@@ -6,10 +6,12 @@ const expandHomeDir = require('expand-home-dir');
 
 async function openDB(filePath) {
   let dbPath;
-
-  filePath = expandHomeDir(filePath);
-
   return new Promise(function(resolve, reject) {
+    if (!filePath) {
+      reject("Couldn't open selected database");
+    }
+
+    filePath = expandHomeDir(filePath);
     if (fs.lstatSync(filePath).isDirectory()) {
       logger.log("Found directory, looking for /3d0d7e5fb2ce288813306e4d4636395e047a3d28");
       dbPath = filePath + '/3d0d7e5fb2ce288813306e4d4636395e047a3d28';

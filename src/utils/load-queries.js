@@ -1,7 +1,8 @@
-const fs     = require('fs');
-const path   = require('path');
-const _      = require('lodash');
-const logger = require('./debug-log');
+const fs           = require('fs');
+const path         = require('path');
+const _            = require('lodash');
+const logger       = require('./debug-log');
+var prettyoutput   = require('prettyoutput');
 
 function loadQuery(filePath) {
   return _.trim(fs.readFileSync(path.join(__dirname, filePath), 'utf8').toString()
@@ -100,6 +101,11 @@ module.exports = function(version, options) {
   querySet.attachmentsForId = (id) => {
     return addAttachmentQueryOptions(querySet.attachments, {ids: [id]}, version);
   };
+
+  if (options.debug) {
+    console.log(`VERSION ${version} QUERY:`);
+    console.log(prettyoutput(querySet));
+  }
 
   return querySet;
 };

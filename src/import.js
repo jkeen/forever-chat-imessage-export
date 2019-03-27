@@ -10,24 +10,40 @@ const TransformStream        = require('./streams/convert-to-format');
 const ProgressStream         = require('./streams/progress-stream');
 const FileStream             = require('./streams/file-stream');
 const ReadDatabaseRowStream  = require('./streams/read-database-row');
-const Promise                = require('bluebird');
+// const OutputStream           = require('./streams/output-stream');
 
-async function importData(filePath, options) {
-  let db               = await openDB(filePath);
-  let version          = await getDBVersion(db);
+const Promise                = require('bluebird');
+const path                   = require("path");
+
+async function importData(filePath, options = {}) {
+  options.showProgress = (options.commandLine && options.save);
+
+  if (options.debug || options.commandLine) {
+    if (options.debug)      console.log("- debugging on");
+    if (options.limit)      console.log(`limited to ${options.limit}`);
+    if (options.sinceDate)  console.log(`only getting entries since ${options.sinceDate}`);
+    if (options.search)     console.log(`only getting entries containing ${options.search}`);
+    if (options.ids)        console.log(`only getting message ids ${options.ids}`);
+    if (options.phone)      console.log(`only getting to/from ${options.phone}`);
+    if (options.test)       console.log(`only testing entires`);
+    if (options.save)       console.log(`writing to ${path.join(__dirname, "data.json").toString()}`);
+  }
+
+  var db               = await openDB(filePath);
+  var version          = await getDBVersion(db);
   let queries          = await loadQueries(version, options);
   let rowCount         = await getRowCount(db, queries.count);
 
   let totalCount = (options.limit && rowCount ? Math.min(rowCount, options.limit) : rowCount);
 
-  let promise = new Promise((resolve) => {
+  let promise = new Promise((resolve, reject) => {
     // These are transform streams
     let readStream          = new ReadDatabaseRowStream(options);
     let fetchAttachments    = new FetchAttachmentsStream(db, queries.attachmentsForId, expandHomeDir(filePath));
-    let formatAddresses     = new FormatAddressStream();
-    let transformIntoFormat = new TransformStream();
-    let identifyPeople      = new IdentifyStream();
-    let progressStream      = new ProgressStream(totalCount, {showProgress: options.showProgress}, function onFinishHook() {
+    let formatAddresses     = new FormatAddressStream(options);
+    let transformIntoFormat = new TransformStream(options);
+    let identifyPeople      = new IdentifyStream(options);
+    let progressStream      = new ProgressStream(totalCount, options, function signalFinish() {
       stream.end();
     });
 
@@ -55,13 +71,8 @@ async function importData(filePath, options) {
     if (!options.streaming) {
       // If we've requested that this not be streaming
       let data = [];
-      stream.on('data', function(item) {
-        data.push(item);
-      });
-
-      stream.on('finish', function() {
-        return resolve(data);
-      });
+      stream.on('data', (item) => data.push(item));
+      stream.on('finish', () => resolve({messages: data}));
     }
 
     db.each(queries.messages, (error, row) => {
@@ -73,16 +84,28 @@ async function importData(filePath, options) {
     });
 
     readStream.on('finish', function() {
-      console.log('read done')
+      // console.log('read done')
     });
     //
+
+    stream.on('error', (error) => {
+      console.log('STREAM ERROR');
+    })
+
+    stream.on('data', (chunk) => {
+      if (options.debug) {
+        // console.log(chunk);
+      }
+    })
+
     stream.on('finish', () => {
-      console.log('done')
       // return resolve(stream);
     });
   });
 
   return promise;
+
+
 }
 
 module.exports = importData;

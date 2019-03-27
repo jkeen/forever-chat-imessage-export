@@ -9,6 +9,7 @@ class FileStream extends Writable {
     this.totalCount = totalCount;
     this.count = 0;
     this.filePath = filePath;
+    this.debug = options.debug;
     this.wstream = fs.createWriteStream(filePath);
   }
 
