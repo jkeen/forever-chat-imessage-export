@@ -7,8 +7,10 @@ class ProgressStream extends Transform {
   constructor(totalCount, options, onFinish) {
     super(Object.assign({}, options, { objectMode: true }));
     this.totalCount = totalCount;
-    this.onFinish = onFinish;
-    this.rowCount = 0;
+    this.onFinish   = onFinish;
+    this.rowCount   = 0;
+    this.debug      = options.debug;
+
     if (options.showProgress) {
       this.progressBar = ProgressBar.create({
         total: totalCount,
@@ -19,14 +21,20 @@ class ProgressStream extends Transform {
   }
 
   _transform(row, encoding, callback) {
+    if (this.debug) {
+      console.log(`progress-stream:: ${this.rowCount} / ${this.totalCount}`);
+    }
+
     this.rowCount ++;
     if (this.progressBar) {
       this.progressBar.update();
     }
-    callback(null, row);
+
     if (this.totalCount === this.rowCount && this.onFinish) {
       this.onFinish();
     }
+
+    callback(null, row);
   }
 }
 

@@ -28,7 +28,13 @@ function addAttachmentQueryOptions(query, options) {
 }
 
 function addQueryOrdering(query, options = {}) {
-  options = _.assign({order: ['date DESC']}, options);
+
+  if (options.sinceDate) {
+    options = _.assign({order: ['date ASC']}, options);
+  }
+  else {
+    options = _.assign({order: ['date DESC']}, options);
+  }
 
   let additions = "";
 
@@ -45,7 +51,7 @@ function addQueryConditions(query, options = {}) {
   let additions = "";
 
   if (options.sinceDate) {
-    additions += " AND date >= (strftime('%s', '" + options.sinceDate + "') -978307200) ";
+    additions += ` AND formatted_date >= "${options.sinceDate}"`;
   }
 
   if (options.search) {

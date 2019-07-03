@@ -36,76 +36,76 @@ async function importData(filePath, options = {}) {
 
   let totalCount = (options.limit && rowCount ? Math.min(rowCount, options.limit) : rowCount);
 
-  let promise = new Promise((resolve, reject) => {
-    // These are transform streams
-    let readStream          = new ReadDatabaseRowStream(options);
-    let fetchAttachments    = new FetchAttachmentsStream(db, queries.attachmentsForId, expandHomeDir(filePath));
-    let formatAddresses     = new FormatAddressStream(options);
-    let transformIntoFormat = new TransformStream(options);
-    let identifyPeople      = new IdentifyStream(options);
-    let progressStream      = new ProgressStream(totalCount, options, function signalFinish() {
-      stream.end();
-    });
-
-    let stream = readStream
-      .pipe(fetchAttachments)
-      .pipe(formatAddresses)
-      .pipe(transformIntoFormat)
-      .pipe(identifyPeople)
-      .pipe(progressStream);
-
-    if (options.outputStream) {
-      // This is where our output gets specified. File or command line
-      stream.pipe(options.outputStream);
-    }
-
-    if (options.writePath) {
-      let fileStream = new FileStream(options.writePath, totalCount);
-      stream.pipe(fileStream);
-
-      fileStream.on('finish', function() {
-        stream.end();
-      });
-    }
-
-    if (!options.streaming) {
-      // If we've requested that this not be streaming
-      let data = [];
-      stream.on('data', (item) => data.push(item));
-      stream.on('finish', () => resolve({messages: data}));
-    }
-
-    db.each(queries.messages, (error, row) => {
-      readStream.push(row);
-    },
-    function() {
-      // when to end the stream? this is the end of the query
-      // stream.end();
-    });
-
-    readStream.on('finish', function() {
-      // console.log('read done')
-    });
-    //
-
-    stream.on('error', (error) => {
-      console.log('STREAM ERROR');
-    })
-
-    stream.on('data', (chunk) => {
-      if (options.debug) {
-        // console.log(chunk);
-      }
-    })
-
-    stream.on('finish', () => {
-      // return resolve(stream);
-    });
+  // These are transform streams
+  let readStream          = new ReadDatabaseRowStream(options);
+  let fetchAttachments    = new FetchAttachmentsStream(db, queries.attachmentsForId, expandHomeDir(filePath));
+  let formatAddresses     = new FormatAddressStream(options);
+  let transformIntoFormat = new TransformStream(options);
+  let identifyPeople      = new IdentifyStream(options);
+  let progressStream      = new ProgressStream(totalCount, options, function signalFinish() {
+    stream.end();
   });
 
-  return promise;
+  let stream = readStream
+    .pipe(fetchAttachments)
+    .pipe(formatAddresses)
+    .pipe(transformIntoFormat)
+    .pipe(identifyPeople)
+    .pipe(progressStream);
 
+  if (options.outputStream) {
+    // This is where our output gets specified. File or command line
+    stream.pipe(options.outputStream);
+  }
 
+  if (options.writePath) {
+    let fileStream = new FileStream(options.writePath, totalCount);
+    stream.pipe(fileStream);
+
+    fileStream.on('finish', function() {
+      stream.end();
+    });
+  }
+
+  db.each(queries.messages, (error, row) => {
+    readStream.push(row);
+  },
+  function() {
+    // when to end the stream? this is the end of the query
+    // stream.end();
+  });
+
+  readStream.on('finish', function() {
+    // console.log('read done')
+  });
+
+  stream.on('error', (error) => {
+    console.error(error);
+  })
+
+  // stream.on('data', (chunk) => {
+  //   if (options.debug) {
+  //     // console.log(chunk);
+  //   }
+  // })
+
+  stream.on('finish', () => {
+    // return resolve(stream);
+  });
+
+  if (!options.streaming) {
+    return new Promise((resolve) => {
+      // If we've requested that this not be streaming
+      let data = [];
+      stream.on('data', (item) => {
+        data.push(item);
+      });
+      stream.on('finish', () => resolve({messages: data}));
+    });
+  }
+  else {
+    return stream;
+  }
 }
 
 module.exports = importData;
